@@ -3,7 +3,7 @@ const IORedis = require('ioredis');
 const { sendOnboardingReminders } = require("../scheduler/onboardingFormReminder");
 
 const connection = new IORedis({
-  host: 'rediss://cronmicroservice-imqdd1.serverless.usw2.cache.amazonaws.com',
+  host: 'redis://cronmicroservice-imqdd1.serverless.usw2.cache.amazonaws.com',
   port: 6379,
   maxRetriesPerRequest: null,
 });
