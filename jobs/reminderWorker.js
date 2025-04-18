@@ -52,8 +52,8 @@ const { sendOnboardingReminders } = require("../scheduler/onboardingFormReminder
 
 // ✅ FIXED: Correct Redis connection
 const connection = new IORedis("rediss://cronmicroservice-imqdd1.serverless.usw2.cache.amazonaws.com:6379", {
-  maxRetriesPerRequest: null,
-  tls: {} // 🔒 ElastiCache Serverless requires TLS
+  tls: {}, // Enables TLS
+  maxRetriesPerRequest: null, // Optional: depending on your use case
 });
 
 const worker = new Worker(
