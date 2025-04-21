@@ -86,7 +86,7 @@ async function enqueueRemindersSequentially() {
     console.log("🎉 All jobs completed successfully!");
   }
 }
-
+console.log("Enqueueing daily jobdddddddddddddddddddddddddddddddddddddds...", process.env.NODE_ENV, process.env.NODE_ENV === "production");
 if (process.env.NODE_ENV === "production") {
   cron.schedule(
     "*/1 * * * *", // every 10 minutes
