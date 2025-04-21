@@ -30,7 +30,6 @@ async function getMediatorCases(mediatorId, date) {
     const { data, error } = await supabase
         .from("cases")
         .select("*,onboarding(*)")
-        .eq("id", 909)
         .gt("mediation_date", date)
         .eq("mediator_id", mediatorId);
 

@@ -87,9 +87,9 @@ async function enqueueRemindersSequentially() {
   }
 }
 console.log("Enqueueing daily jobdddddddddddddddddddddddddddddddddddddds...", process.env.NODE_ENV, process.env.NODE_ENV === "production");
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV !== "production") {
   cron.schedule(
-    "*/1 * * * *", // every 10 minutes
+    "0 18 * * *", // every 10 minutes
     enqueueRemindersSequentially,
     {
       scheduled: true,
