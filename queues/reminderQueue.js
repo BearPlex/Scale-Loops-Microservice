@@ -1,8 +1,8 @@
-const { Queue } = require('bullmq');
-const connection = require("../config/redisConnection");
+// const { Queue } = require('bullmq');
+// const connection = require("../config/redisConnection");
 
-const reminderQueue = new Queue("reminderQueue", {
-  connection,
-});
+// const reminderQueue = new Queue("reminderQueue", {
+//   connection,
+// });
 
-module.exports = reminderQueue;
+// module.exports = reminderQueue;
