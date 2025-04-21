@@ -19,6 +19,11 @@ const app = express();
 app.use(express.json());
 app.use('/reminders', reminderRoutes);
 
+
+// ✅ Health Check Route
+app.get("/", (req, res) => {
+  res.status(200).send("✅ Server is up and running!");
+});
 // Redis and Queue setup
 // const connection = new IORedis();
 // const queue = new Queue('reminderQueue', { connection });
