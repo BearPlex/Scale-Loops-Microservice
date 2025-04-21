@@ -1,12 +1,19 @@
 const cron = require("node-cron");
 const { sendOnboardingReminders } = require("../scheduler/onboardingFormReminder");
-const { sendReminders } = require("../scheduler/paymentReminder");
+const { defendentReminders,plaintiffReminders } = require("../scheduler/paymentReminder");
 const { sendBriefReminders } = require("../scheduler/briefReminder");
 const { sendKeyDocumentsReminders } = require("../scheduler/keyDocumentsReminder");
 
+
+async function runAllPaymentReminders() {
+  await defendentReminders();
+  await plaintiffReminders();
+}
+
+
 const jobs = [
   { name: "onboarding-reminder", fn: sendOnboardingReminders },
-  { name: "payment-reminder", fn: sendReminders },
+  { name: "payment-reminder", fn: runAllPaymentReminders },
   { name: "brief-reminder", fn: sendBriefReminders },
   { name: "key-documents-reminder", fn: sendKeyDocumentsReminders },
 ];

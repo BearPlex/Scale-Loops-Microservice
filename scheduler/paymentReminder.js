@@ -234,6 +234,19 @@ async function sendReminders(forClient) {
   }
 }
 
+
+function defendentReminders() {
+  const param1 = "defendant";
+  sendReminders(param1);
+}
+
+function plaintiffReminders() {
+  const param1 = "plaintiff";
+  sendReminders(param1);
+}
+
 module.exports = {
     sendReminders,
+    defendentReminders,
+    plaintiffReminders
 };
