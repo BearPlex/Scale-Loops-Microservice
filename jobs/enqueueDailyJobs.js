@@ -1,15 +1,20 @@
 const cron = require("node-cron");
-const { sendOnboardingReminders } = require("../scheduler/onboardingFormReminder");
-const { defendentReminders,plaintiffReminders } = require("../scheduler/paymentReminder");
+const {
+  sendOnboardingReminders,
+} = require("../scheduler/onboardingFormReminder");
+const {
+  defendentReminders,
+  plaintiffReminders,
+} = require("../scheduler/paymentReminder");
 const { sendBriefReminders } = require("../scheduler/briefReminder");
-const { sendKeyDocumentsReminders } = require("../scheduler/keyDocumentsReminder");
-
+const {
+  sendKeyDocumentsReminders,
+} = require("../scheduler/keyDocumentsReminder");
 
 async function runAllPaymentReminders() {
   await defendentReminders();
   await plaintiffReminders();
 }
-
 
 const jobs = [
   { name: "onboarding-reminder", fn: sendOnboardingReminders },
@@ -46,7 +51,11 @@ async function enqueueRemindersSequentially() {
     console.log("🎉 All jobs completed successfully!");
   }
 }
-console.log("Enqueueing daily jobdddddddddddddddddddddddddddddddddddddds...", process.env.NODE_ENV, process.env.NODE_ENV === "production");
+console.log(
+  "Enqueueing daily jobdddddddddddddddddddddddddddddddddddddds...",
+  process.env.NODE_ENV,
+  process.env.NODE_ENV === "production"
+);
 if (process.env.NODE_ENV === "production") {
   cron.schedule(
     "0 18 * * *", // every 10 minutes
