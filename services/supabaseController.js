@@ -175,7 +175,7 @@ async function sendOnboardingEmailReminder(payload, emailLog = null) {
 
 async function getLatestLog({ case_id, plaintiff_id, defender_id, type }) {
     try {
-        if (!case_id && !plaintiff_id && !defender_id) {
+        if (!case_id && (!plaintiff_id || !defender_id)) {
             throw new Error(
                 "At least one filter parameter is required (case_id, plaintiff_id, defender_id)."
             );
