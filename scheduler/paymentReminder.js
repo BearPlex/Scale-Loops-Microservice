@@ -2,7 +2,11 @@ const supabase = require("../config/supabaseClient");
 const cron = require("node-cron");
 const moment = require("moment");
 const { sendPaymentsReminders } = require("../services/supabaseController");
-const { formatAmount, convertToAMPM } = require("../utils/functions");
+const {
+  formatAmount,
+  convertToAMPM,
+  generateInvoiceUrlFrontend,
+} = require("../utils/functions");
 const {
   fetchEmailRemainders,
   markReminderAsSent,
@@ -18,16 +22,18 @@ async function getCases(forClient) {
   const { data, error } = await supabase
     .from("cases")
     .select(
-      `*,payments(*),
+      `*,payments(*),onboarding(*),
       mediator:mediator_id(*),
       defender_id(*,onboarding(*),payments(*)),
       plaintiff_id(*,onboarding(*),payments(*)) `
     )
-    // .eq("id", 807)
+    // .eq("id", 960)
     .gt("mediation_date", today);
+
   if (error) {
     return [];
   }
+
   return data
     ? data.map((x) => ({
         ...x,
@@ -97,7 +103,15 @@ const sendPaymentEmail = async (
           : moment(xDaysAfterOnBoarding).startOf("day").format("MMMM DD, YYYY"),
       caseNumber: caseData?.case_number,
       caseTitle: caseData?.case_name,
-      paymentURL: paymentInfo?.payment_url,
+      // paymentURL: paymentInfo?.payment_url,
+
+      paymentURL:
+        paymentInfo?.invoice_id === null
+          ? paymentInfo?.payment_url
+          : generateInvoiceUrlFrontend(
+              paymentInfo?.invoice_id,
+              caseData?.mediator?.user_id
+            ),
       mediatorEmail: caseData?.mediator?.email,
     };
 
@@ -127,11 +141,11 @@ const sendPaymentEmail = async (
 
 async function sendReminders(forClient) {
   const today = moment().utc().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-03-10").startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-05-08").startOf("day").format("YYYY-MM-DD");
 
   try {
     const cases = await getCases(forClient);
-    // console.log("cases", cases);
+
     for (const caseData of cases) {
       const emailReminders = await fetchEmailRemainders(
         caseData.id,
@@ -154,6 +168,9 @@ async function sendReminders(forClient) {
         );
         continue;
       }
+
+      // console.log("cases", cases?.[0]?.payments);
+      // return;
 
       const emailPromises = [];
       const markReminderPromises = [];
@@ -234,7 +251,6 @@ async function sendReminders(forClient) {
   }
 }
 
-
 async function defendentReminders() {
   const param1 = "defendant";
   sendReminders(param1);
@@ -246,7 +262,7 @@ async function plaintiffReminders() {
 }
 
 module.exports = {
-    sendReminders,
-    defendentReminders,
-    plaintiffReminders
+  sendReminders,
+  defendentReminders,
+  plaintiffReminders,
 };

@@ -121,7 +121,8 @@ const calculateReminderDates = (
       mediationDate,
       remainderInterval,
       type,
-      bookingConfirmationDate)
+      bookingConfirmationDate
+    );
     let firstReminder = getNextWorkingDay(
       moment(mediateDate).subtract(remainderInterval, "days"),
       null,
@@ -376,12 +377,6 @@ async function fetchCalendarEvents(calendar, startDate, endDate, timezone) {
   return allEvents;
 }
 
-
-
-
-
-
-
 const getCurrentTimeInTimezone = (timezone) => {
   return moment().tz(timezone);
 };
@@ -462,6 +457,15 @@ function getNextValidReminder(reminders, currentReminderWord) {
   return null;
 }
 
+const generateInvoiceUrlFrontend = (invoiceId, mediatorId) => {
+  const baseUrl =
+    process.env.FRONT_END_BASE_URL || "https://app.scalemediation.com";
+  // console.log(
+  //   "`${baseUrl}/invoice-link/${invoiceId}/${mediatorId}`",
+  //   `${baseUrl}/invoice-link/${invoiceId}/${mediatorId}`
+  // );
+  return `${baseUrl}/invoice-link/${invoiceId}/${mediatorId}`;
+};
 
 module.exports = {
   notifyTeamAndUser,
@@ -485,4 +489,5 @@ module.exports = {
   countValidReminders,
   convertCountingWordToDigit,
   getNextValidReminder,
+  generateInvoiceUrlFrontend,
 };
