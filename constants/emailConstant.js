@@ -43,9 +43,31 @@ const emailAttachment = {
     ONBOARDING_REMINDER_FOR_ODR_MEDIATOR: "cm8xomzku07pfdz2n5a3hvp5r",
     ONBOARDING_REMINDER_FOR_MEDIATOR: "clzu5zwwu0006x4avb8b86g2w",
   };
+
+  
+const CUSOTM_MEDIATORS_EMAILS = {
+  "d4d109b1-7a9e-438e-a197-96af07ceab2a": {
+    email: "usama@yopmail.com",
+    BRIEF_EMAIL_SEND: (data) => {
+      const payload = {
+        name: data?.name,
+        mediatorName: data?.mediatorName,
+        dateAndTime: data?.dateAndTime,
+        slotType: data?.slotType,
+        time: data?.time,
+        mediatorEmail: data?.mediatorEmail
+      };
+      const transcationId = "cmagxubsx0xjcmx7bnf4j5t6v"
+
+
+      return { payload, transcationId }
+    }
+  }
+}
   
   module.exports = {
     LOOPS_EMAIL_TRANSACTIONAL_IDS,
     emailAttachment,
+    CUSOTM_MEDIATORS_EMAILS
   };
   

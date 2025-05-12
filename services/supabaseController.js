@@ -402,6 +402,51 @@ async function sendPaymentsReminders(payload, reminderArr = null) {
 
 
 
+
+
+  async function handleSendNewBriefLinkEmailProudFoot(payload, emailLog = null) {
+    const {
+      email,
+      name,
+      mediatorName,
+      mediatorEmail,
+      dateAndTime,
+      caseTitle,
+      caseNumber,
+    } = payload;
+  
+    const data = {
+      transactionalId: "cmagxubsx0xjcmx7bnf4j5t6v",
+      email,
+      dataVariables: {
+        name,
+        dateAndTime,
+        caseTitle,
+        caseNumber: caseNumber ? caseNumber : " ",
+        onboardingURL,
+        mediatorName,
+        mediatorEmail,
+      },
+    };
+  
+    try {
+      const response = await axios.post(url, data, { headers });
+      if (data) {
+        if (emailLog !== null) {
+          const { data, error } = await supabase
+            .from("email_logs")
+            .insert([emailLog]);
+        }
+      }
+      console.log("response:sendBriefEmailReminder", data);
+      return response;
+    } catch (error) {
+      console.log("error:sendBriefEmailReminder", error?.response);
+    }
+  }
+
+
+
 module.exports = {
     getLatestLog,
     sendOnboardingEmailReminder,
@@ -409,5 +454,6 @@ module.exports = {
     fetchEmailRemainders,
     sendPaymentsReminders,
     sendBriefEmailReminder,
-    sendKeyDocumentEmailReminder
+    sendKeyDocumentEmailReminder,
+    handleSendNewBriefLinkEmailProudFoot
 };

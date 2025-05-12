@@ -4,6 +4,7 @@ const moment = require("moment");
 const {
   sendBriefEmailReminder,
   sendOnboardingEmailReminder,
+  handleSendNewBriefLinkEmailProudFoot,
 } = require("../services/supabaseController");
 const { convertToAMPM } = require("../utils/functions");
 const {
@@ -149,6 +150,22 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       caseTitle: caseData?.case_name,
       mediatorEmail: mediator?.email,
     };
+    
+    const isCustomMediatorFound = CUSOTM_MEDIATORS_EMAILS?.[mediatorDetails?.user_id];
+    if (isCustomMediatorFound?.email && isCustomMediatorFound?.BRIEF_EMAIL_SEND) {
+
+      await handleSendNewBriefLinkEmailProudFoot({ ...baseData, email: client?.email });
+      if (
+        !skipCCEmails &&
+        mediatorDetails?.email_cc &&
+        Array.isArray(mediatorDetails.email_cc)
+      ) {
+        for (const ccEmail of mediatorDetails.email_cc) {
+          await handleSendNewBriefLinkEmailProudFoot({ ...baseData, email: ccEmail });
+        }
+      }
+    }
+    else{
 
     await sendBriefEmailReminder(
       { ...baseData, email: client.email },
@@ -160,6 +177,7 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
         await sendBriefEmailReminder({ ...baseData, email: ccEmail });
       }
     }
+  }
 
     console.log("sendBriefEmailReminder - Emails sent successfully.");
   } catch (error) {
