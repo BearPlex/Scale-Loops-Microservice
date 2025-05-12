@@ -52,7 +52,7 @@ async function enqueueRemindersSequentially() {
   }
 }
 console.log(
-  "Enqueueing daily jobdddddddddddddddddddddddddddddddddddddds...",
+  "Enqueueing daily...",
   process.env.NODE_ENV,
   process.env.NODE_ENV === "production"
 );

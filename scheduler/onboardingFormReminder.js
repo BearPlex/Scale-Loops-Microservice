@@ -21,7 +21,7 @@ const { calculateBriefDays } = require("../utils/functions");
 
 async function getMediator() {
   const { data, error } = await supabase.from("mediators").select("*");
-  // .eq("email", "hiqbal@bearplex.com");
+  // .eq("email", "hamad@odus.studio");
 
   if (error) {
     return [];
@@ -35,7 +35,7 @@ async function getMediatorCases(mediatorId, date) {
     .select("*,onboarding(*)")
     .gt("mediation_date", date)
     .eq("mediator_id", mediatorId);
-  // .in("id", [1060, 1061]);
+  // .in("id", [374]);
 
   if (error) {
     return [];
@@ -93,14 +93,14 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       // )} ${caseData?.slot_type === "fullday" ? "onwards" : ""})`,
     };
 
-    console.log("baseData", baseData);
+    console.log("Case ID ->", caseData?.id, "  baseData", baseData);
     // Send email to the client
     await sendOnboardingEmailReminder(
       { ...baseData, email: client.email, case_id: caseData?.id },
       emailLog
     );
 
-    console.log("mediator?.email_cc", mediator?.email_cc);
+    // console.log("mediator?.email_cc", mediator?.email_cc);
 
     if (mediator?.email_cc && Array.isArray(mediator.email_cc)) {
       for (const ccEmail of mediator.email_cc) {
@@ -112,7 +112,11 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       }
     }
 
-    console.log("sendOnboardingEmailReminder - Emails sent successfully.");
+    console.log(
+      "Case ID ->",
+      caseData?.id,
+      " -> sendOnboardingEmailReminder - Emails sent successfully."
+    );
   } catch (error) {
     console.log(
       "case_data",
@@ -125,11 +129,12 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
 
 async function sendOnboardingReminders() {
   const today = moment().utc().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-05-22").startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-05-12").startOf("day").format("YYYY-MM-DD");
   try {
     const mediators = await getMediator();
     for (const mediator of mediators) {
       try {
+        // console.log("mediator", mediator);
         await processMediatorCases(mediator, today);
       } catch (error) {
         console.error(
@@ -146,6 +151,10 @@ async function sendOnboardingReminders() {
 async function processMediatorCases(mediator, today) {
   try {
     const mediatorCases = await getMediatorCases(mediator?.user_id, today);
+
+    // console.log("mediatorCases", mediatorCases);
+
+    // return;
 
     for (const caseData of mediatorCases) {
       try {
@@ -228,7 +237,8 @@ async function sendAndMarkReminders(
   todaysReminders
 ) {
   try {
-    console.log("caseData", caseData);
+    // console.log("caseData", caseData);
+    // return;
     const [plaintiffData, defendantData] = await Promise.all([
       !caseData.isPlaintiffDone
         ? getClientInformation(caseData.plaintiff_id)
@@ -267,7 +277,7 @@ async function sendAndMarkReminders(
           console.log("Adding email function for plaintiff");
           emailPromises.push(() =>
             formatAndSendEmail(mediator, caseData, plaintiffData, {
-              client_id: caseData.plaintiff_id,
+              plaintiff_id: caseData.plaintiff_id,
               case_id: caseData.id,
               type: "onboarding",
               mediator: mediator.mediator_id,
@@ -294,7 +304,7 @@ async function sendAndMarkReminders(
           console.log("Adding email function for defendant");
           emailPromises.push(() =>
             formatAndSendEmail(mediator, caseData, defendantData, {
-              client_id: caseData.defender_id,
+              defender_id: caseData.defender_id,
               case_id: caseData.id,
               type: "onboarding",
               mediator: mediator.mediator_id,
@@ -351,14 +361,17 @@ async function executePromises(promises, errorMessage) {
 async function markRemindersAsSent(emailReminderId, reminderTypesToMark) {
   const markPromises = reminderTypesToMark.map((reminderType) => {
     // Log what is being added
-    console.log("Adding markReminder function");
+    console.log(
+      "emailReminderId -> ",
+      emailReminderId,
+      "Adding markReminder function"
+    );
     return () =>
       markReminderAsSent(emailReminderId, reminderType, "onBoarding");
   });
   await executePromises(markPromises, `markReminderAsSent`);
 }
 
-// sendOnboardingReminders();
 module.exports = {
   sendOnboardingReminders,
 };
