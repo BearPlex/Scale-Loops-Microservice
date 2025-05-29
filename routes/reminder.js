@@ -1,8 +1,8 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const validateReminder = require('../utils/validateReminder');
+const validateReminder = require("../utils/validateReminder");
 
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     validateReminder(req.body);
     res.json(reminder);

@@ -5,9 +5,42 @@ const { LOOPS_EMAIL_TRANSACTIONAL_IDS } = require("../constants/emailConstant");
 const url = "https://app.loops.so/api/v1/transactional";
 
 const headers = {
-  Authorization: "Bearer cdbf87f9912af8a5aac2bc5b88b8afbe",
+  // Authorization: "Bearer cdbf87f9912af8a5aac2bc5b88b8afbe",
+  Authorization: "Bearer ",
   "Content-Type": "application/json",
 };
+
+async function fetchHourlyInvoicesEmailRemainders(
+  reminder_id,
+  date = null,
+  type = "onBoarding"
+) {
+  try {
+    let query = supabase
+      .from("hourly_invoices_reminders")
+      .select("*")
+      .eq("case_id", case_id)
+      .eq("mediator_id", mediator_id);
+
+    if (type !== null) {
+      query.eq("type", type);
+    }
+
+    if (date) {
+      query = query.or(
+        `reminders->first->>date.eq.${date},reminders->second->>date.eq.${date},reminders->third->>date.eq.${date},reminders->fourth->>date.eq.${date}`
+      );
+    }
+
+    const { data: reminders, error } = await query.single();
+
+    if (error) return null;
+
+    return reminders;
+  } catch (err) {
+    return err;
+  }
+}
 
 async function fetchEmailRemainders(
   case_id,
@@ -405,4 +438,5 @@ module.exports = {
   sendPaymentsReminders,
   sendBriefEmailReminder,
   sendKeyDocumentEmailReminder,
+  fetchHourlyInvoicesEmailRemainders,
 };

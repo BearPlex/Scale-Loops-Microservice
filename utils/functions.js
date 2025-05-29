@@ -23,7 +23,7 @@ function convertDollarToCents(dollars = 0) {
 function formatAmount(amount) {
   return amount
     ? `$${Number(amount)
-        .toFixed(0)
+        .toFixed(2)
         .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`
     : "$0";
 }
