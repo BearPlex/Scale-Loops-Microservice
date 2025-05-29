@@ -22,24 +22,23 @@ async function getCases(forClient) {
   const { data, error } = await supabase
     .from("cases")
     .select(
-      `*,payments(*),onboarding(*),
+      `*,
+      onboarding(*),
       mediator:mediator_id(*),
       defender_id(*,onboarding(*),payments(*)),
       plaintiff_id(*,onboarding(*),payments(*)) `
     )
-    // .eq("id", 960)
     .gt("mediation_date", today);
 
   if (error) {
     return [];
   }
-
   return data
     ? data.map((x) => ({
         ...x,
-        payments:
-          x[forClient === "defendant" ? "defender_id" : "plaintiff_id"]
-            ?.payments,
+        payments: x[
+          forClient === "defendant" ? "defender_id" : "plaintiff_id"
+        ]?.payments?.filter((y) => y.case_id === x.id),
       }))
     : [];
 }
@@ -141,11 +140,10 @@ const sendPaymentEmail = async (
 
 async function sendReminders(forClient) {
   const today = moment().utc().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-05-08").startOf("day").format("YYYY-MM-DD");
+  // const today = moment().startOf("day").format("YYYY-MM-DD");
 
   try {
     const cases = await getCases(forClient);
-
     for (const caseData of cases) {
       const emailReminders = await fetchEmailRemainders(
         caseData.id,
@@ -168,9 +166,6 @@ async function sendReminders(forClient) {
         );
         continue;
       }
-
-      // console.log("cases", cases?.[0]?.payments);
-      // return;
 
       const emailPromises = [];
       const markReminderPromises = [];
