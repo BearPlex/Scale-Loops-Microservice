@@ -467,6 +467,19 @@ const generateInvoiceUrlFrontend = (invoiceId, mediatorId) => {
   return `${baseUrl}/invoice-link/${invoiceId}/${mediatorId}`;
 };
 
+function safeParseArray(value) {
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      const isCheckSingleFile = value?.includes("https://");
+      return isCheckSingleFile ? [value] : [];
+    }
+  }
+  return Array.isArray(value) ? value : [];
+}
+
 module.exports = {
   notifyTeamAndUser,
   convertCentsToDollars,
@@ -490,4 +503,5 @@ module.exports = {
   convertCountingWordToDigit,
   getNextValidReminder,
   generateInvoiceUrlFrontend,
+  safeParseArray,
 };

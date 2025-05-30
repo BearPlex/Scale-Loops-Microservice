@@ -4,7 +4,7 @@ const moment = require("moment");
 const {
   sendKeyDocumentEmailReminder,
 } = require("../services/supabaseController");
-const { convertToAMPM } = require("../utils/functions");
+const { convertToAMPM, safeParseArray } = require("../utils/functions");
 const {
   fetchEmailRemainders,
   markReminderAsSent,
@@ -71,11 +71,13 @@ async function getMediatorCases(mediatorId, date) {
           court_adr_order_docs?.length > 0)
     );
 
+    const captionPage = safeParseArray(obj?.caption_page);
+
     return {
       ...obj,
       plaintiffStatus: {
         onBoarding: hasPlaintiffOnboarding,
-        keyDocument: !!obj?.caption_page || hasPlaintiffUploadDoc,
+        keyDocument: captionPage?.length > 0 || hasPlaintiffUploadDoc,
       },
       defendantStatus: {
         onBoarding: hasDefendantOnboarding,
