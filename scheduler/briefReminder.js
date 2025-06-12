@@ -23,7 +23,7 @@ async function getMediator() {
     .from("mediators")
     .select("*")
     .eq("is_odr_mediator", false);
-  // .eq("email", "awaisilyas@bearplex.com");
+  // .eq("email", "hiqbal@bearplex.com");
   if (error) {
     return [];
   }
@@ -34,7 +34,7 @@ async function getMediatorCases(mediatorId, date) {
   const { data, error } = await supabase
     .from("cases")
     .select("*,onboarding(*)")
-    // .eq("id", 396)
+    // .eq("id", 1105)
     .gt("mediation_date", date)
     .eq("mediator_id", mediatorId);
 
@@ -50,8 +50,9 @@ async function getMediatorCases(mediatorId, date) {
       ({ client_id }) => client_id === obj?.plaintiff_id
     );
     const hasPlaintiffBrief = obj?.onboarding?.some(
-      ({ client_id, brief_info }) =>
-        client_id === obj?.plaintiff_id && brief_info?.length > 0
+      ({ client_id, brief_info, is_brief_submit_manually }) =>
+        client_id === obj?.plaintiff_id &&
+        (brief_info?.length > 0 || is_brief_submit_manually === true)
     );
 
     // Check for defendant's onboarding and brief status
@@ -59,8 +60,9 @@ async function getMediatorCases(mediatorId, date) {
       ({ client_id }) => client_id === obj?.defender_id
     );
     const hasDefendantBrief = obj?.onboarding?.some(
-      ({ client_id, brief_info }) =>
-        client_id === obj?.defender_id && brief_info?.length > 0
+      ({ client_id, brief_info, is_brief_submit_manually }) =>
+        client_id === obj?.defender_id &&
+        (brief_info?.length > 0 || is_brief_submit_manually === true)
     );
 
     return {
@@ -169,14 +171,15 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
 
 async function sendBriefReminders() {
   const today = moment().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-02-17").startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-06-02").startOf("day").format("YYYY-MM-DD");
   try {
     const mediators = await getMediator();
     for (const mediator of mediators) {
       const mediatorCases = await getMediatorCases(mediator?.user_id, today);
-      // console.log("mediatorCases", mediatorCases);
+      // console.log(mediatorCases?.[0]);
       // return;
       for (const caseData of mediatorCases) {
+        // console.log("caseData", caseData);
         if (caseData.plaintiffStatus.brief && caseData.defendantStatus.brief) {
           console.log(
             "Skipping caseData: Brief Completed, Case Id:",
@@ -306,8 +309,6 @@ async function sendBriefReminders() {
   }
 }
 
-
-
 module.exports = {
-    sendBriefReminders,
+  sendBriefReminders,
 };
