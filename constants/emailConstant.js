@@ -51,7 +51,40 @@ const LOOPS_EMAIL_TRANSACTIONAL_IDS = {
 
 const CUSTOM_MEDIATORS_EMAILS = {
   "74b49fc0-5d92-4a04-a52a-7f25d4441e9c": {
-    email: "hiqbal@yopmail.com",
+    email: "hiqbal@bearplex.com",
+    BRIEF_REMINDER: (data) => {
+      const payload = {
+        name: data?.name,
+        mediatorName: data?.mediatorName,
+        mediatorEmail: data?.mediatorEmail,
+        dateAndTime: data?.dateAndTime,
+        caseNumber: data?.caseNumber,
+        caseTitle: data?.caseTitle,
+        onboardingURL: data?.onboardingURL,
+      };
+      const transcationId = "cmagxubsx0xjcmx7bnf4j5t6v";
+      return { payload, transcationId };
+    },
+  },
+  "6aa3e286-9219-4899-96d3-2d34367e7167": {
+    email: "qa@bearplex.com",
+    BRIEF_REMINDER: (data) => {
+      const payload = {
+        name: data?.name,
+        mediatorName: data?.mediatorName,
+        mediatorEmail: data?.mediatorEmail,
+        dateAndTime: data?.dateAndTime,
+        caseNumber: data?.caseNumber,
+        caseTitle: data?.caseTitle,
+        onboardingURL: data?.onboardingURL,
+      };
+      const transcationId = "cmagxubsx0xjcmx7bnf4j5t6v";
+      return { payload, transcationId };
+    },
+  },
+
+  "571149e9-cf12-4a5a-a5ac-73d8b6a01a9d": {
+    email: "mproudfoot@g3pmlaw.com",
     BRIEF_REMINDER: (data) => {
       const payload = {
         name: data?.name,
