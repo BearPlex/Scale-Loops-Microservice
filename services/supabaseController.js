@@ -1,6 +1,9 @@
 const axios = require("axios");
 const supabase = require("../config/supabaseClient");
-const { LOOPS_EMAIL_TRANSACTIONAL_IDS } = require("../constants/emailConstant");
+const {
+  LOOPS_EMAIL_TRANSACTIONAL_IDS,
+  CUSTOM_MEDIATORS_EMAILS,
+} = require("../constants/emailConstant");
 
 const url = "https://app.loops.so/api/v1/transactional";
 
@@ -392,10 +395,23 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
     onboardingURL,
     mediatorName,
     mediatorEmail,
+    mediatorUserId,
   } = payload;
 
+  const isCustomMediator = CUSTOM_MEDIATORS_EMAILS[mediatorUserId];
+
   const data = {
-    transactionalId: "cm1phuaxe004g2wx8qtwg9167",
+    transactionalId: isCustomMediator?.email
+      ? isCustomMediator?.BRIEF_REMINDER({
+          name,
+          dateAndTime,
+          caseTitle,
+          caseNumber: caseNumber ? caseNumber : " ",
+          onboardingURL,
+          mediatorName,
+          mediatorEmail,
+        })?.transcationId
+      : LOOPS_EMAIL_TRANSACTIONAL_IDS.BRIEF_FOR_ODR_MEDIATOR,
     email,
     dataVariables: {
       name,
@@ -412,9 +428,7 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
     const response = await axios.post(url, data, { headers });
     if (data) {
       if (emailLog !== null) {
-        const { data, error } = await supabase
-          .from("email_logs")
-          .insert([emailLog]);
+        await supabase.from("email_logs").insert([emailLog]);
       }
     }
     console.log("response:sendBriefEmailReminder", data);

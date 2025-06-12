@@ -24,6 +24,7 @@ async function getMediator() {
     .select("*")
     .eq("is_odr_mediator", false);
   // .eq("email", "hiqbal@bearplex.com");
+
   if (error) {
     return [];
   }
@@ -34,9 +35,9 @@ async function getMediatorCases(mediatorId, date) {
   const { data, error } = await supabase
     .from("cases")
     .select("*,onboarding(*)")
-    // .eq("id", 1105)
     .gt("mediation_date", date)
     .eq("mediator_id", mediatorId);
+  // .eq("id", 1148);
 
   if (error) {
     return [];
@@ -150,6 +151,7 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       caseNumber: caseData?.case_number,
       caseTitle: caseData?.case_name,
       mediatorEmail: mediator?.email,
+      mediatorUserId: mediator?.user_id,
     };
 
     await sendBriefEmailReminder(
@@ -171,7 +173,7 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
 
 async function sendBriefReminders() {
   const today = moment().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-06-02").startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-06-18").startOf("day").format("YYYY-MM-DD");
   try {
     const mediators = await getMediator();
     for (const mediator of mediators) {
