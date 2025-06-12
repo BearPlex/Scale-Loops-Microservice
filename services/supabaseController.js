@@ -5,42 +5,41 @@ const { LOOPS_EMAIL_TRANSACTIONAL_IDS } = require("../constants/emailConstant");
 const url = "https://app.loops.so/api/v1/transactional";
 
 const headers = {
-  // Authorization: "Bearer cdbf87f9912af8a5aac2bc5b88b8afbe",
-  Authorization: "Bearer ",
+  Authorization: "Bearer cdbf87f9912af8a5aac2bc5b88b8afbe",
   "Content-Type": "application/json",
 };
 
-async function fetchHourlyInvoicesEmailRemainders(
-  reminder_id,
-  date = null,
-  type = "onBoarding"
-) {
-  try {
-    let query = supabase
-      .from("hourly_invoices_reminders")
-      .select("*")
-      .eq("case_id", case_id)
-      .eq("mediator_id", mediator_id);
+// async function fetchHourlyInvoicesEmailRemainders(
+//   reminder_id,
+//   date = null,
+//   type = "onBoarding"
+// ) {
+//   try {
+//     let query = supabase
+//       .from("hourly_invoices_reminders")
+//       .select("*")
+//       .eq("case_id", case_id)
+//       .eq("mediator_id", mediator_id);
 
-    if (type !== null) {
-      query.eq("type", type);
-    }
+//     if (type !== null) {
+//       query.eq("type", type);
+//     }
 
-    if (date) {
-      query = query.or(
-        `reminders->first->>date.eq.${date},reminders->second->>date.eq.${date},reminders->third->>date.eq.${date},reminders->fourth->>date.eq.${date}`
-      );
-    }
+//     if (date) {
+//       query = query.or(
+//         `reminders->first->>date.eq.${date},reminders->second->>date.eq.${date},reminders->third->>date.eq.${date},reminders->fourth->>date.eq.${date}`
+//       );
+//     }
 
-    const { data: reminders, error } = await query.single();
+//     const { data: reminders, error } = await query.single();
 
-    if (error) return null;
+//     if (error) return null;
 
-    return reminders;
-  } catch (err) {
-    return err;
-  }
-}
+//     return reminders;
+//   } catch (err) {
+//     return err;
+//   }
+// }
 
 async function fetchEmailRemainders(
   case_id,
@@ -97,6 +96,44 @@ async function markReminderAsSent(reminderId, reminderType, emailType) {
 
     const { error: updateError } = await supabase
       .from("email_reminders")
+      .update({ reminders: updatedReminders })
+      .eq("id", reminderId)
+      .eq("type", emailType);
+
+    if (updateError) throw updateError;
+
+    return { success: true, message: `${reminderType} marked as sent` };
+  } catch (err) {
+    return err;
+  }
+}
+
+async function markHourlyInvoiceReminderAsSent(
+  reminderId,
+  reminderType,
+  emailType
+) {
+  try {
+    const { data: reminderData, error: fetchError } = await supabase
+      .from("hourly_invoices_reminders")
+      .select("reminders")
+      .eq("id", reminderId)
+      .eq("type", emailType)
+      .single();
+
+    if (fetchError || !reminderData) {
+      throw new Error(fetchError?.message || "Hourly Reminder not found");
+    }
+
+    const updatedReminders = { ...reminderData.reminders };
+    if (updatedReminders?.[reminderType]?.is_sent !== undefined) {
+      updatedReminders[reminderType].is_sent = true;
+    } else {
+      throw new Error(`Invalid hourly reminder type: ${reminderType}`);
+    }
+
+    const { error: updateError } = await supabase
+      .from("hourly_invoices_reminders")
       .update({ reminders: updatedReminders })
       .eq("id", reminderId)
       .eq("type", emailType);
@@ -430,6 +467,84 @@ async function sendKeyDocumentEmailReminder(payload, emailLog = null) {
   }
 }
 
+async function sendHourlyInvoiceReminder(payload, reminderArr = null) {
+  const {
+    email,
+    name,
+    mediatorName,
+    totalDue,
+    paymentURL,
+    mediatorEmail,
+    caseTitle,
+    mediationDateAndTime,
+    case_id,
+    // dueDate,
+    // caseNumber,
+  } = payload;
+
+  const caseData = await findCaseById(case_id, "*,mediator:mediator_id(*)");
+
+  const data = {
+    transactionalId: caseData?.mediator?.is_odr_mediator
+      ? LOOPS_EMAIL_TRANSACTIONAL_IDS.HOURLY_INVOICE_REMINDER
+      : LOOPS_EMAIL_TRANSACTIONAL_IDS.HOURLY_INVOICE_REMINDER,
+
+    email,
+    dataVariables: {
+      name,
+      totalDue,
+      paymentURL: paymentURL ? paymentURL : " ",
+      mediatorName,
+      mediatorEmail,
+      caseTitle,
+      dateAndTime: mediationDateAndTime,
+      // dueDate,
+      // ...(!caseData?.mediator?.is_odr_mediator && {
+      //   caseNumber: caseNumber || " ",
+      // }),
+    },
+  };
+  try {
+    const response = await axios.post(url, data, { headers });
+    if (response) {
+      if (reminderArr !== null && Array.isArray(reminderArr)) {
+        const insertionPromises = reminderArr.map(async (emailLog) => {
+          const filterCriteria = {
+            case_id: emailLog.case_id,
+            type: emailLog.type,
+          };
+          if (emailLog.plaintiff_id?.client_id) {
+            filterCriteria.plaintiff_id = emailLog.plaintiff_id?.client_id;
+          }
+          if (emailLog.defender_id?.client_id) {
+            filterCriteria.defender_id = emailLog.defender_id?.client_id;
+          }
+
+          const { data, error } = await supabase
+            .from("email_logs")
+            .insert([emailLog]);
+
+          if (error) {
+            console.error(
+              `Error inserting email log: ${JSON.stringify(emailLog)}`,
+              error
+            );
+          } else {
+            console.log(
+              `Successfully inserted email log: ${JSON.stringify(data)}`
+            );
+          }
+        });
+        await Promise.all(insertionPromises);
+      }
+    }
+    return response;
+  } catch (error) {
+    console.error("error:sendPaymentsReminders", error?.response?.data);
+    throw error;
+  }
+}
+
 module.exports = {
   getLatestLog,
   sendOnboardingEmailReminder,
@@ -438,5 +553,6 @@ module.exports = {
   sendPaymentsReminders,
   sendBriefEmailReminder,
   sendKeyDocumentEmailReminder,
-  fetchHourlyInvoicesEmailRemainders,
+  sendHourlyInvoiceReminder,
+  markHourlyInvoiceReminderAsSent,
 };

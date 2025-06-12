@@ -21,11 +21,11 @@ async function runAllPaymentReminders() {
 }
 
 const jobs = [
-  // { name: "onboarding-reminder", fn: sendOnboardingReminders },
-  // { name: "payment-reminder", fn: runAllPaymentReminders },
-  // { name: "brief-reminder", fn: sendBriefReminders },
-  // { name: "key-documents-reminder", fn: sendKeyDocumentsReminders },
-  // { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder },
+  { name: "onboarding-reminder", fn: sendOnboardingReminders },
+  { name: "payment-reminder", fn: runAllPaymentReminders },
+  { name: "brief-reminder", fn: sendBriefReminders },
+  { name: "key-documents-reminder", fn: sendKeyDocumentsReminders },
+  { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder },
 ];
 
 async function runJobsSequentially(jobList) {
@@ -62,13 +62,9 @@ console.log(
   process.env.NODE_ENV === "production"
 );
 if (process.env.NODE_ENV === "production") {
-  // cron.schedule(
-  //   "0 18 * * *", // every 10 minutes
-  //   enqueueRemindersSequentially,
-  //   {
-  //     scheduled: true,
-  //     timezone: "UTC",
-  //   }
-  // );
-  enqueueRemindersSequentially();
+  cron.schedule("0 18 * * *", enqueueRemindersSequentially, {
+    scheduled: true,
+    timezone: "UTC",
+  });
+  // enqueueRemindersSequentially();
 }

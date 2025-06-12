@@ -1,12 +1,15 @@
 const supabase = require("../config/supabaseClient");
 const moment = require("moment");
-const { sendPaymentsReminders } = require("../services/supabaseController");
+const {
+  sendHourlyInvoiceReminder,
+  markHourlyInvoiceReminderAsSent,
+} = require("../services/supabaseController");
 const {
   formatAmount,
   convertToAMPM,
   generateInvoiceUrlFrontend,
-  convertToTimezone,
   convertCentsToDollars,
+  convertToTimezone,
 } = require("../utils/functions");
 const {
   countValidReminders,
@@ -22,11 +25,11 @@ async function getHourlyInvoicesReminders() {
       invoice:hourly_invoice_id!inner(*,
       mediator:mediator_id(first_name,last_name,email,user_id,mediator_id,email_cc,timezone),
       client:client_id(name,email,client_id),
-      case:case_id(id,case_schedule_time,mediation_date,case_number,case_name))`
+      case:case_id(id,case_schedule_time,mediation_date,case_number,case_name,plaintiff_id,defender_id))`
     )
     .neq("hourly_invoice_id.status", "paid")
     .neq("hourly_invoice_id.status", "paid_manually");
-  // .eq("id", 960)
+  // .in("hourly_invoice_id", [699, 700]);
 
   if (error) {
     return [];
@@ -41,35 +44,28 @@ const sendPaymentEmail = async (invoice, reminderObj = null) => {
     const mediatorData = invoice.mediator;
     const caseData = invoice.case;
 
-    console.log("invoice", invoice);
-    // console.log("mediatorData", mediatorData);
-    console.log("reminderObj", reminderObj);
+    // const invoiceCreateDateTz = convertToTimezone(
+    //   invoice.created_at,
+    //   mediatorData.timezone
+    // );
 
-    const invoiceCreateDateTz = convertToTimezone(
-      invoice.created_at,
-      mediatorData.timezone
-    );
-    // console.log("invoiceCreateDateTz", invoiceCreateDateTz.format());
-    // console.log("invoice.due_date", invoice.due_date);
-    const remainingDueDays = Math.ceil(
-      invoiceCreateDateTz.diff(invoice.due_date || 0, "days", true)
-    );
-    // console.log("remainingDueDays", remainingDueDays);
+    // const remainingDueDays = Math.ceil(
+    //   invoiceCreateDateTz.diff(invoice.due_date || 0, "days", true)
+    // );
 
     const baseEmailData = {
       name: clientData?.name,
+      caseTitle: caseData?.case_name,
       mediatorName: `${mediatorData?.first_name} ${mediatorData?.last_name}`,
+      mediatorEmail: mediatorData?.email,
       mediationDateAndTime: `${moment(caseData?.mediation_date).format(
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
       totalDue: formatAmount(convertCentsToDollars(invoice?.amount)),
-      dueDate:
-        remainingDueDays <= 0
-          ? moment(invoice.created_at).startOf("day").format("MMMM DD, YYYY")
-          : moment(invoice.due_date).startOf("day").format("MMMM DD, YYYY"),
-      caseNumber: caseData?.case_number,
-      caseTitle: caseData?.case_name,
-
+      // dueDate:
+      //   remainingDueDays <= 0
+      //     ? moment(invoice.created_at).startOf("day").format("MMMM DD, YYYY")
+      //     : moment(invoice.due_date).startOf("day").format("MMMM DD, YYYY"),
       paymentURL:
         !invoice?.hasOwnProperty("invoice_id") || invoice?.invoice_id === null
           ? invoice?.payment_url
@@ -77,19 +73,16 @@ const sendPaymentEmail = async (invoice, reminderObj = null) => {
               invoice?.invoice_id,
               mediatorData?.user_id
             ),
-      mediatorEmail: mediatorData?.email,
+      // caseNumber: caseData?.case_number,
     };
-
-    console.log("baseEmailData", baseEmailData);
-    return;
-    await sendPaymentsReminders(
+    await sendHourlyInvoiceReminder(
       { ...baseEmailData, email: clientData?.email, case_id: caseData?.id },
       reminderObj
     );
 
     if (mediatorData?.email_cc && Array.isArray(mediatorData?.email_cc)) {
       for (const ccEmail of mediatorData?.email_cc) {
-        await sendPaymentsReminders({
+        await sendHourlyInvoiceReminder({
           ...baseEmailData,
           email: ccEmail,
           case_id: caseData?.id,
@@ -108,6 +101,7 @@ const sendPaymentEmail = async (invoice, reminderObj = null) => {
 
 async function hourlyInvoicesReminder() {
   const today = moment().utc().startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-06-23").startOf("day").format("YYYY-MM-DD");
 
   try {
     const invoicesReminders = await getHourlyInvoicesReminders();
@@ -124,16 +118,10 @@ async function hourlyInvoicesReminder() {
         .map(([reminderType, reminder]) => ({ reminderType, reminder }));
       if (!todaysReminders.length) {
         console.log(
-          `No unsent Hourly Invoice Reminders for case ${invoiceReminder.invoice.case.id} , Date: ${today}`
+          `No unsent Hourly Invoice Reminders for ID -> ${invoiceReminder.id} , Date: ${today}`
         );
         continue;
       }
-      console.log("totalReminders", totalReminders);
-      console.log("todaysReminders", todaysReminders);
-
-      // return;
-      // console.log("cases", cases?.[0]?.payments);
-      // return;
 
       const emailPromises = [];
       const markReminderPromises = [];
@@ -144,30 +132,38 @@ async function hourlyInvoicesReminder() {
             invoiceReminder?.reminders || {},
             reminderType || null
           )?.date;
-          console.log("nextReminderDate", nextReminderDate);
+
+          const isDefendant =
+            invoiceReminder.invoice.client_id !==
+            invoiceReminder.invoice.case.plaintiff_id;
 
           emailPromises.push(() =>
-            sendPaymentEmail(invoiceReminder.invoice, {
-              client_id: invoiceReminder.invoice.client_id,
-              case_id: invoiceReminder.invoice.case.id,
-              type: "hourly-invoice",
-              event: `Hourly Invoice Reminder ${convertCountingWordToDigit(
-                reminderType
-              )}/${totalReminders}`,
-              amount: invoiceReminder.invoice.amount,
-              next_reminder:
-                nextReminderDate !== null && nextReminderDate !== undefined
-                  ? moment(nextReminderDate).format("MMMM D,YYYY")
-                  : null,
-            })
+            sendPaymentEmail(invoiceReminder.invoice, [
+              {
+                [isDefendant ? "defender_id" : "plaintiff_id"]: isDefendant
+                  ? invoiceReminder.invoice.case.defender_id
+                  : invoiceReminder.invoice.case.plaintiff_id,
+                mediator: invoiceReminder.invoice.mediator.mediator_id,
+                case_id: invoiceReminder.invoice.case.id,
+                type: "hourly-invoice",
+                event: `Hourly Invoice Reminder ${convertCountingWordToDigit(
+                  reminderType
+                )}/${totalReminders}`,
+                amount: convertCentsToDollars(invoiceReminder.invoice.amount),
+                next_reminder:
+                  nextReminderDate !== null && nextReminderDate !== undefined
+                    ? moment(nextReminderDate).format("MMMM D,YYYY")
+                    : null,
+              },
+            ])
           );
-          // markReminderPromises.push(() =>
-          //   markReminderAsSent(
-          //     emailReminders.id,
-          //     reminderType,
-          //     `payment-${forClient}`
-          //   )
-          // );
+          markReminderPromises.push(() =>
+            markHourlyInvoiceReminderAsSent(
+              invoiceReminder.id,
+              reminderType,
+              `hourly-invoice`
+            )
+          );
         } catch (error) {
           console.error(
             `Error processing Payment Reminder ${reminderType} for case ${caseData.id}:`,
@@ -177,7 +173,7 @@ async function hourlyInvoicesReminder() {
       }
 
       await Promise.all(emailPromises.map((fn) => fn()));
-      // await Promise.all(markReminderPromises.map((fn) => fn()));
+      await Promise.all(markReminderPromises.map((fn) => fn()));
 
       console.log(
         `Hourly Invoice Reminders for case ${invoiceReminder.invoice.case.id} have been processed. Date: ${today}`

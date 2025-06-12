@@ -433,7 +433,7 @@ function sortCountingWords(words) {
 }
 
 function getNextValidReminder(reminders, currentReminderWord) {
-  console.log("reminders", { reminders, currentReminderWord });
+  // console.log("reminders", { reminders, currentReminderWord });
   if (!currentReminderWord || !reminders.hasOwnProperty(currentReminderWord)) {
     return null;
   }
