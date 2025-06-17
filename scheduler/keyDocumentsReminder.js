@@ -39,7 +39,8 @@ async function getMediatorCases(mediatorId, date) {
   return data.map((obj) => {
     // Check for plaintiff's onboarding and key document status
     const hasPlaintiffOnboarding = obj?.onboarding?.some(
-      ({ client_id }) => client_id === obj?.plaintiff_id
+      ({ client_id, completed }) =>
+        client_id === obj?.plaintiff_id && completed === true
     );
     const hasPlaintiffUploadDoc = obj?.odr_case_meta_data?.some(
       ({
@@ -56,8 +57,10 @@ async function getMediatorCases(mediatorId, date) {
 
     // Check for defendant's onboarding and key document status
     const hasDefendantOnboarding = obj?.onboarding?.some(
-      ({ client_id }) => client_id === obj?.defender_id
+      ({ client_id, completed }) =>
+        client_id === obj?.defender_id && completed === true
     );
+
     const hasDefendantUploadDoc = obj?.odr_case_meta_data?.some(
       ({
         client_id,

@@ -21,7 +21,7 @@ const { calculateBriefDays } = require("../utils/functions");
 
 async function getMediator() {
   const { data, error } = await supabase.from("mediators").select("*");
-  // .eq("email", "hamad@odus.studio");
+  // .eq("email", "hiqbal@bearplex.com");
 
   if (error) {
     return [];
@@ -35,7 +35,7 @@ async function getMediatorCases(mediatorId, date) {
     .select("*,onboarding(*)")
     .gt("mediation_date", date)
     .eq("mediator_id", mediatorId);
-  // .in("id", [374]);
+  // .in("id", [1046]);
 
   if (error) {
     return [];
@@ -45,10 +45,12 @@ async function getMediatorCases(mediatorId, date) {
 
   return data.map((obj) => {
     const isPlaintiffDone = obj?.onboarding?.some(
-      ({ client_id }) => client_id === obj?.plaintiff_id
+      ({ client_id, completed }) =>
+        client_id === obj?.plaintiff_id && completed === true
     );
     const isDefendantDone = obj?.onboarding?.some(
-      ({ client_id }) => client_id === obj?.defender_id
+      ({ client_id, completed }) =>
+        client_id === obj?.defender_id && completed === true
     );
     return { ...obj, isPlaintiffDone, isDefendantDone };
   });
@@ -151,11 +153,7 @@ async function sendOnboardingReminders() {
 async function processMediatorCases(mediator, today) {
   try {
     const mediatorCases = await getMediatorCases(mediator?.user_id, today);
-
     // console.log("mediatorCases", mediatorCases);
-
-    // return;
-
     for (const caseData of mediatorCases) {
       try {
         if (caseData.isPlaintiffDone && caseData.isDefendantDone) {
@@ -237,8 +235,6 @@ async function sendAndMarkReminders(
   todaysReminders
 ) {
   try {
-    // console.log("caseData", caseData);
-    // return;
     const [plaintiffData, defendantData] = await Promise.all([
       !caseData.isPlaintiffDone
         ? getClientInformation(caseData.plaintiff_id)

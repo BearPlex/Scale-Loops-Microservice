@@ -37,7 +37,7 @@ async function getMediatorCases(mediatorId, date) {
     .select("*,onboarding(*)")
     .gt("mediation_date", date)
     .eq("mediator_id", mediatorId);
-  // .eq("id", 1148);
+  // .eq("id", 1046);
 
   if (error) {
     return [];
@@ -48,7 +48,8 @@ async function getMediatorCases(mediatorId, date) {
   return data.map((obj) => {
     // Check for plaintiff's onboarding and brief status
     const hasPlaintiffOnboarding = obj?.onboarding?.some(
-      ({ client_id }) => client_id === obj?.plaintiff_id
+      ({ client_id, completed }) =>
+        client_id === obj?.plaintiff_id && completed === true
     );
     const hasPlaintiffBrief = obj?.onboarding?.some(
       ({ client_id, brief_info, is_brief_submit_manually }) =>
@@ -58,7 +59,8 @@ async function getMediatorCases(mediatorId, date) {
 
     // Check for defendant's onboarding and brief status
     const hasDefendantOnboarding = obj?.onboarding?.some(
-      ({ client_id }) => client_id === obj?.defender_id
+      ({ client_id, completed }) =>
+        client_id === obj?.defender_id && completed === true
     );
     const hasDefendantBrief = obj?.onboarding?.some(
       ({ client_id, brief_info, is_brief_submit_manually }) =>
@@ -173,7 +175,7 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
 
 async function sendBriefReminders() {
   const today = moment().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-06-18").startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-06-13").startOf("day").format("YYYY-MM-DD");
   try {
     const mediators = await getMediator();
     for (const mediator of mediators) {
