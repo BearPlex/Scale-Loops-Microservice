@@ -560,6 +560,8 @@ async function sendHourlyInvoiceReminder(payload, reminderArr = null) {
 }
 
 module.exports = {
+  loopsHeader: headers,
+  loopsUrl: url,
   getLatestLog,
   sendOnboardingEmailReminder,
   markReminderAsSent,

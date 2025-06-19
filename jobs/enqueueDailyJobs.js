@@ -14,6 +14,7 @@ const {
 const {
   hourlyInvoicesReminder,
 } = require("../scheduler/hourlyInvoicesReminder");
+const { weeklyMediationRecap } = require("../scheduler/weeklyMediationsRecap");
 
 async function runAllPaymentReminders() {
   await defendentReminders();
@@ -26,6 +27,9 @@ const jobs = [
   { name: "brief-reminder", fn: sendBriefReminders },
   { name: "key-documents-reminder", fn: sendKeyDocumentsReminders },
   { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder },
+
+  //
+  { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
 ];
 
 async function runJobsSequentially(jobList) {

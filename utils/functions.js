@@ -480,6 +480,89 @@ function safeParseArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function generateCasesHtml(cases) {
+  if (!Array.isArray(cases) || cases.length === 0) return "";
+
+  return cases
+    .map((c, index) => {
+      const caseUrl = c.url ? escapeHtml(c.url) : "#";
+
+      const partyRowsHtml = c.parties
+        .map((p, partyIndex) => {
+          if (partyIndex === 0) {
+            return `
+              <tr>
+                <td rowspan="${
+                  c.partyCount
+                }" valign="top" align="left" style="padding-left:10px;">
+                  <div class="case-title">
+                    <a href="${caseUrl}" target="_blank" style="color:#027776; text-decoration:none; cursor: pointer;">
+                      ${escapeHtml(c.caseTitle)}
+                    </a>
+                  </div>
+                  <div class="case-meta" style="font-size:9px; color:#6b7280; line-height:1.2;">${escapeHtml(
+                    c.caseDate
+                  )}</div>
+                </td>
+                <td style="padding-top: 2px; padding-bottom: 2px;">
+                  <div class="party-name" style="margin:0; padding:0; line-height:2.5; font-size:10px;">${escapeHtml(
+                    p.partyName
+                  )}</div>
+                  <div class="party-role" style="margin:0; padding:0; font-size:9px; color:#6b7280; line-height:0.7;">${escapeHtml(
+                    p.partyRole
+                  )}</div>
+                </td>
+                <td align="center">${escapeHtml(p.onboarding)}</td>
+                <td align="center">${escapeHtml(p.payment)}</td>
+                <td align="center">${escapeHtml(p.documents)}</td>
+              </tr>
+            `;
+          } else {
+            return `
+              <tr>
+                <td style="padding-top: 2px; padding-bottom: 2px;">
+                  <div class="party-name" style="margin:0; padding:0; line-height:2.5; font-size:10px;">${escapeHtml(
+                    p.partyName
+                  )}</div>
+                  <div class="party-role" style="margin:0; padding:0; font-size:9px; color:#6b7280; line-height:0.7;">${escapeHtml(
+                    p.partyRole
+                  )}</div>
+                </td>
+                <td align="center">${escapeHtml(p.onboarding)}</td>
+                <td align="center">${escapeHtml(p.payment)}</td>
+                <td align="center">${escapeHtml(p.documents)}</td>
+              </tr>
+            `;
+          }
+        })
+        .join("");
+
+      const dividerRow =
+        index < cases.length - 1
+          ? `
+        <tr>
+          <td colspan="5" style="padding-top:10px; padding-bottom:5px;">
+            <div style="height:1px; background-color:#e5e7eb;"></div>
+          </td>
+        </tr>
+      `
+          : "";
+
+      return partyRowsHtml + dividerRow;
+    })
+    .join("");
+}
+
+function escapeHtml(text) {
+  if (typeof text !== "string") return text;
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 module.exports = {
   notifyTeamAndUser,
   convertCentsToDollars,
@@ -504,4 +587,5 @@ module.exports = {
   getNextValidReminder,
   generateInvoiceUrlFrontend,
   safeParseArray,
+  generateCasesHtml,
 };
