@@ -494,7 +494,7 @@ function generateCasesHtml(cases) {
               <tr>
                 <td rowspan="${
                   c.partyCount
-                }" valign="top" align="left" style="padding-left:10px; width: 30%;">
+                }" valign="top" align="left" style="padding-left:10px; padding-right:20px; width: 30%;">
                   <div class="case-title">
                     <a href="${caseUrl}" target="_blank" style="color:#027776; text-decoration:none; cursor: pointer;">
                       ${escapeHtml(c.caseTitle)}
@@ -541,7 +541,7 @@ function generateCasesHtml(cases) {
         index < cases.length - 1
           ? `
         <tr>
-          <td colspan="5" style="padding-top:10px; padding-bottom:5px;">
+          <td colspan="5" style="padding-top:5px; padding-bottom:5px;">
             <div style="height:1px; background-color:#e5e7eb;"></div>
           </td>
         </tr>

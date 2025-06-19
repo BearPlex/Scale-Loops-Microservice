@@ -20,7 +20,7 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
     console.warn("Invalid or empty response from summary");
     return;
   }
-// console.log("data",data);
+  // console.log("data",data);
   // return;
 
   for (const item of data) {
@@ -81,7 +81,11 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
                 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ecfdf5; border-left: 4px solid #34d399; border-top-right-radius: 5px; border-bottom-right-radius: 5px; padding: 16px;">
                   <tr>
                     <td style="padding: 16px; font-size: 14px; color: #111827;">
-                      <strong>Nice work</strong> — you completed <span style="color:#027776; font-size:16px; font-weight:bold;">${thisWeek?.totalMediations}</span> mediations this week!<br />
+                      <strong>Nice work</strong> — you completed <span style="color:#027776; font-size:16px; font-weight:bold;">${
+                        thisWeek?.totalMediations
+                      }</span> ${
+      thisWeek?.totalMediations > 1 ? "mediations" : "mediation"
+    } this week!<br />
                     </td>
                   </tr>
                 </table>
