@@ -494,37 +494,37 @@ function generateCasesHtml(cases) {
               <tr>
                 <td rowspan="${
                   c.partyCount
-                }" valign="top" align="left" style="padding-left:10px;">
+                }" valign="top" align="left" style="padding-left:10px; width: 30%;">
                   <div class="case-title">
                     <a href="${caseUrl}" target="_blank" style="color:#027776; text-decoration:none; cursor: pointer;">
                       ${escapeHtml(c.caseTitle)}
                     </a>
                   </div>
-                  <div class="case-meta" style="font-size:9px; color:#6b7280; line-height:1.2;">${escapeHtml(
+                  <div class="case-meta">${escapeHtml(
                     c.caseDate
                   )}</div>
                 </td>
-                <td style="padding-top: 2px; padding-bottom: 2px;">
-                  <div class="party-name" style="margin:0; padding:0; line-height:2.5; font-size:10px;">${escapeHtml(
+                <td style="padding-top: 2px; padding-bottom: 2px;width: 13.5%; ">
+                  <div class="party-name">${escapeHtml(
                     p.partyName
                   )}</div>
-                  <div class="party-role" style="margin:0; padding:0; font-size:9px; color:#6b7280; line-height:0.7;">${escapeHtml(
+                  <div class="party-role">${escapeHtml(
                     p.partyRole
                   )}</div>
                 </td>
-                <td align="center">${escapeHtml(p.onboarding)}</td>
-                <td align="center">${escapeHtml(p.payment)}</td>
-                <td align="center">${escapeHtml(p.documents)}</td>
+                <td style="width: 17.33%;" align="center">${escapeHtml(p.onboarding)}</td>
+                <td style="width: 17.33%;" align="center">${escapeHtml(p.payment)}</td>
+                <td style="width: 21.83%;" align="center">${escapeHtml(p.documents)}</td>
               </tr>
             `;
           } else {
             return `
               <tr>
-                <td style="padding-top: 2px; padding-bottom: 2px;">
-                  <div class="party-name" style="margin:0; padding:0; line-height:2.5; font-size:10px;">${escapeHtml(
+                <td style="padding-top: 3px; padding-bottom: 3px;">
+                  <div class="party-name">${escapeHtml(
                     p.partyName
                   )}</div>
-                  <div class="party-role" style="margin:0; padding:0; font-size:9px; color:#6b7280; line-height:0.7;">${escapeHtml(
+                  <div class="party-role">${escapeHtml(
                     p.partyRole
                   )}</div>
                 </td>
