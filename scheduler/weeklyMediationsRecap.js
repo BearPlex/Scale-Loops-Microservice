@@ -72,14 +72,47 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
       .filter((c) => c.parties.length > 0);
 
     const casesHtml = generateCasesHtml(cases);
+    const totalMediationsHtml = `<mj-wrapper padding-left="12px" padding-right="14px" padding="3px">
+          <mj-section padding="0px">
+            <mj-column padding="0px">
+              <mj-text padding="0px">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ecfdf5; border-left: 4px solid #34d399; border-top-right-radius: 5px; border-bottom-right-radius: 5px; padding: 16px;">
+                  <tr>
+                    <td style="padding: 16px; font-size: 14px; color: #111827;">
+                      <strong>Nice work</strong> — you completed <span style="color:#027776; font-size:16px; font-weight:bold;">${thisWeek?.totalMediations}</span> mediations this week!<br />
+                    </td>
+                  </tr>
+                </table>
+              </mj-text>
+            </mj-column>
+          </mj-section>
+        </mj-wrapper>`;
+
+    if (casesHtml === "" && thisWeek?.totalMediations <= 0) {
+      console.log(
+        "No Mediations in this week and also no any in next week  -> ",
+        "Mediator Email:",
+        mediator?.email
+      );
+      continue;
+    }
+
     const emailData = {
       transactionalId: LOOPS_EMAIL_TRANSACTIONAL_IDS.WEEKLY_RECAP_FOR_MEDIATOR,
       email: mediator.email,
       // email: "hiqbal@bearplex.com",
       dataVariables: {
         mediatorName: `${mediator.first_name} ${mediator.last_name}`,
-        totalMediations: thisWeek?.totalMediations || 0,
-        casesHtml: casesHtml ? casesHtml : " ",
+        totalMediationsHtml:
+          thisWeek?.totalMediations > 0 ? totalMediationsHtml : " ",
+        casesHtml: casesHtml
+          ? casesHtml
+          : `<tr>
+              <td colspan="5" style="padding: 10px; text-align: center; font-size: 12px; color: #6b7280;">
+                You have no cases for next week
+              </td>
+            </tr>`,
+        // totalMediations: thisWeek?.totalMediations || 0,
         // deltaCount: thisWeek?.deltaCount || 0,
         // deltaPositive: thisWeek?.deltaPositive || false,
       },
@@ -102,7 +135,7 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
 async function weeklyMediationRecap() {
   const today = moment().utc().startOf("day");
   const isFriday = today.day() === 5;
-  console.log("Is today Friday?", isFriday);
+  console.log("Is today Friday?", isFriday, "Date: ", today);
 
   if (!isFriday) {
     return true;

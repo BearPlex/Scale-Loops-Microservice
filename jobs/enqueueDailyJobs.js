@@ -29,7 +29,7 @@ const jobs = [
   { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder },
 
   //
-  // { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
+  { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
 ];
 
 async function runJobsSequentially(jobList) {
