@@ -5,7 +5,12 @@ const {
   sendBriefEmailReminder,
   sendOnboardingEmailReminder,
 } = require("../services/supabaseController");
-const { convertToAMPM } = require("../utils/functions");
+const {
+  convertToAMPM,
+  countValidReminders,
+  convertCountingWordToDigit,
+  getNextValidReminder,
+} = require("../utils/functions");
 const {
   fetchEmailRemainders,
   markReminderAsSent,
@@ -142,7 +147,6 @@ async function onBoardingEmail(mediator, caseData, client) {
 
 async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
   try {
-    // console.log("client", client);
     const baseData = {
       name: client.name,
       mediatorName: `${mediator?.first_name} ${mediator?.last_name}`,
@@ -175,7 +179,8 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
 
 async function sendBriefReminders() {
   const today = moment().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-06-13").startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-07-02").startOf("day").format("YYYY-MM-DD");
+
   try {
     const mediators = await getMediator();
     for (const mediator of mediators) {
@@ -200,18 +205,13 @@ async function sendBriefReminders() {
           "brief"
         );
 
-        // console.log("emailReminders", emailReminders);
-        // return;
-
-        const cleanedReminders = Object.fromEntries(
-          Object.entries(emailReminders?.reminders || {}).filter(
-            ([_, reminder]) => reminder !== null
-          )
-        );
-        const todaysReminders = Object.entries(cleanedReminders || {})
+        const totalReminders = countValidReminders(emailReminders?.reminders);
+        const todaysReminders = Object.entries(emailReminders?.reminders || {})
           .filter(
             ([_, reminder]) =>
-              moment(reminder?.date).isSame(today, "day") && !reminder.is_sent
+              reminder &&
+              moment(reminder?.date).isSame(today, "day") &&
+              !reminder?.is_sent
           )
           .map(([reminderType, reminder]) => ({ reminderType, reminder }));
 
@@ -248,6 +248,10 @@ async function sendBriefReminders() {
 
         for (const { reminderType } of todaysReminders) {
           try {
+            const nextReminderDate = getNextValidReminder(
+              emailReminders?.reminders || {},
+              reminderType || null
+            )?.date;
             // console.log("caseData.plaintiffStatus", caseData.plaintiffStatus);
 
             if (
@@ -263,7 +267,14 @@ async function sendBriefReminders() {
                       case_id: caseData.id,
                       type: "brief",
                       mediator: mediator.mediator_id,
-                      event: "Brief Reminder Sent",
+                      event: `Brief Reminder ${convertCountingWordToDigit(
+                        reminderType
+                      )}/${totalReminders}`,
+                      next_reminder:
+                        nextReminderDate !== null &&
+                        nextReminderDate !== undefined
+                          ? moment(nextReminderDate).format("MMMM D,YYYY")
+                          : null,
                     })
               );
             }
@@ -282,7 +293,14 @@ async function sendBriefReminders() {
                       case_id: caseData.id,
                       type: "brief",
                       mediator: mediator.mediator_id,
-                      event: "Brief Reminder Sent",
+                      event: `Brief Reminder ${convertCountingWordToDigit(
+                        reminderType
+                      )}/${totalReminders}`,
+                      next_reminder:
+                        nextReminderDate !== null &&
+                        nextReminderDate !== undefined
+                          ? moment(nextReminderDate).format("MMMM D,YYYY")
+                          : null,
                     })
               );
             }
@@ -297,6 +315,8 @@ async function sendBriefReminders() {
             );
           }
         }
+
+        // console.log("emailPromises", emailPromises);
 
         // Execute all email functions
         await Promise.all(emailPromises.map((fn) => fn()));
