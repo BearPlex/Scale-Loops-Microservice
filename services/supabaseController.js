@@ -236,18 +236,6 @@ async function sendOnboardingEmailReminder(payload, emailLog = null) {
   }
 }
 
-// async function sendOnboardingEmailReminder(payload, emailLog = null) {
-//     try {
-//       // Simulate a failure (e.g., API failure)
-//       throw new Error("Simulated API failure");
-
-//       // Normal functionality...
-//     } catch (error) {
-//       console.log("Error in sendOnboardingEmailReminder:", error);
-//       throw error; // This will cause BullMQ to fail the job
-//     }
-//   }
-
 async function getLatestLog({ case_id, plaintiff_id, defender_id, type }) {
   try {
     if (!case_id && (!plaintiff_id || !defender_id)) {
@@ -559,6 +547,74 @@ async function sendHourlyInvoiceReminder(payload, reminderArr = null) {
   }
 }
 
+async function sendZoomEmailReminder(payload, emailLog = null) {
+  const {
+    email,
+    name,
+    mediatorName,
+    dateAndTime,
+    zoomURL,
+    caseTitle,
+    caseNumber,
+    mediatorEmail,
+    is_odr_mediator,
+    calenderBlob,
+    case_id,
+  } = payload;
+
+  const data = {
+    transactionalId: is_odr_mediator
+      ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_ODR_MEDIATOR
+      : LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_MEDIATOR,
+    email,
+    dataVariables: {
+      name,
+      email,
+      caseTitle,
+      dateAndTime,
+      zoomURL,
+      mediatorName,
+      mediatorEmail,
+      ...(!is_odr_mediator && {
+        caseNumber: caseNumber || " ",
+      }),
+    },
+    attachments: [
+      {
+        filename: "zoom-invite.ics",
+        contentType: "text/calendar",
+        data: calenderBlob,
+      },
+    ],
+  };
+
+  try {
+    const response = await axios.post(url, data, { headers });
+    if (response.status === 200) {
+      if (emailLog !== null) {
+        const { error } = await supabase.from("email_logs").insert([emailLog]);
+        console.log("Case ID: ", case_id, " -> emailLog | error", error);
+      }
+    }
+    // Loops API might respond with 200 and `success: false`
+    if (response.status !== 200) {
+      console.error(
+        "Case ID: ",
+        case_id,
+        " -> Loops API error response:",
+        response.data
+      );
+      throw new Error(
+        `Loops API error: ${JSON.stringify(response.data.error)}`
+      );
+    }
+    return response;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+}
+
 module.exports = {
   loopsHeader: headers,
   loopsUrl: url,
@@ -571,4 +627,5 @@ module.exports = {
   sendKeyDocumentEmailReminder,
   sendHourlyInvoiceReminder,
   markHourlyInvoiceReminderAsSent,
+  sendZoomEmailReminder,
 };

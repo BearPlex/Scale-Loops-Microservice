@@ -15,6 +15,7 @@ const {
   hourlyInvoicesReminder,
 } = require("../scheduler/hourlyInvoicesReminder");
 const { weeklyMediationRecap } = require("../scheduler/weeklyMediationsRecap");
+const { sendZoomReminders } = require("../scheduler/zoomReminder");
 
 async function runAllPaymentReminders() {
   await defendentReminders();
@@ -22,14 +23,16 @@ async function runAllPaymentReminders() {
 }
 
 const jobs = [
-  { name: "onboarding-reminder", fn: sendOnboardingReminders },
-  { name: "payment-reminder", fn: runAllPaymentReminders },
-  { name: "brief-reminder", fn: sendBriefReminders },
-  { name: "key-documents-reminder", fn: sendKeyDocumentsReminders },
-  { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder },
+  // { name: "onboarding-reminder", fn: sendOnboardingReminders },
+  // { name: "payment-reminder", fn: runAllPaymentReminders },
+  // { name: "brief-reminder", fn: sendBriefReminders },
+  // { name: "key-documents-reminder", fn: sendKeyDocumentsReminders },
+  // { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder },
+
+  { name: "zoom-reminder", fn: sendZoomReminders },
 
   //
-  { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
+  // { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
 ];
 
 async function runJobsSequentially(jobList) {
@@ -70,5 +73,5 @@ if (process.env.NODE_ENV === "production") {
     scheduled: true,
     timezone: "UTC",
   });
-  // enqueueRemindersSequentially();
+  enqueueRemindersSequentially();
 }
