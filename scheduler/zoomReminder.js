@@ -4,16 +4,18 @@ const {
   convertToAMPM,
   generateICSFileForManual,
 } = require("../utils/functions");
-
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
-const { sendZoomEmailReminder } = require("../services/supabaseController");
+const {
+  sendZoomEmailReminder,
+  sendZoomEmailReminderForMediators,
+  getParticipants,
+} = require("../services/supabaseController");
 dayjs.extend(utc);
 
 async function getMediatorCases() {
   try {
-    // const today = dayjs.utc().format("YYYY-MM-DD");
-    const twoDaysAfter = dayjs.utc().add(2, "day").format("YYYY-MM-DD");
+    const twoDaysAfter = dayjs.utc().add(1, "day").format("YYYY-MM-DD");
 
     const { data, error: fetchError } = await supabase
       .from("cases")
@@ -27,12 +29,7 @@ async function getMediatorCases() {
       // .lte("mediation_date", twoDaysAfter)
       .eq("mediation_date", twoDaysAfter)
       .neq("zoom_id", null);
-
-    // console.log("today,twoDaysAfter", {
-    //   // today,
-    //   twoDaysAfter,
-    //   caseIds: data?.map(({ id }) => id),
-    // });
+    // .eq("id", 1153);
 
     if (fetchError) throw fetchError;
     // console.log("TotalCases: ", data?.length);
@@ -40,6 +37,39 @@ async function getMediatorCases() {
   } catch (err) {
     console.error("Error fetching All Cases:", err);
     return [];
+  }
+}
+
+async function formatAndSendEmailForMediator(
+  mediator,
+  caseData,
+  icsCalendarData
+) {
+  try {
+    const baseData = {
+      mediatorName: `${mediator?.first_name} ${mediator?.last_name}`,
+      dateAndTime: `${moment(caseData?.mediation_date).format(
+        "MMMM DD, YYYY"
+      )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
+      zoomURL: caseData?.zoom_link,
+      caseTitle: caseData?.case_name,
+      caseNumber: caseData?.case_number,
+      is_odr_mediator: mediator?.is_odr_mediator,
+      calenderBlob: btoa(icsCalendarData),
+    };
+
+    console.log("baseData:sendZoomEmailReminderForMediators(Mediator)", {
+      email: mediator.email,
+    });
+
+    await sendZoomEmailReminderForMediators({
+      ...baseData,
+      email: mediator.email,
+    });
+
+    console.log("sendZoomEmailReminder - Emails sent successfully.");
+  } catch (error) {
+    console.error("Error sending email:", error);
   }
 }
 
@@ -60,21 +90,23 @@ async function formatAndSendEmail(
       zoomURL: caseData?.zoom_link,
       caseTitle: caseData?.case_name,
       caseNumber: caseData?.case_number,
-      mediatorEmail: mediator?.email,
       is_odr_mediator: mediator?.is_odr_mediator,
       calenderBlob: btoa(icsCalendarData),
       case_id: caseData?.id,
+      mediatorEmail: mediator?.email,
     };
 
-    // console.log("baseData", { ...baseData, email: client.email });
+    console.log("baseData:sendZoomEmailReminder(Parties)", {
+      email: client.email,
+    });
 
-    // await sendZoomEmailReminder({ ...baseData, email: client.email }, emailLog);
+    await sendZoomEmailReminder({ ...baseData, email: client.email }, emailLog);
 
-    // if (mediator?.email_cc && Array.isArray(mediator.email_cc)) {
-    //   for (const ccEmail of mediator.email_cc) {
-    //     await sendZoomEmailReminder({ ...baseData, email: ccEmail });
-    //   }
-    // }
+    if (mediator?.email_cc && Array.isArray(mediator.email_cc)) {
+      for (const ccEmail of mediator.email_cc) {
+        await sendZoomEmailReminder({ ...baseData, email: ccEmail });
+      }
+    }
 
     console.log("sendZoomEmailReminder - Emails sent successfully.");
   } catch (error) {
@@ -90,6 +122,24 @@ async function sendZoomReminders() {
       try {
         const icsData = generateICSFileForManual(caseData, caseData.mediator);
         if (caseData?.plaintiff?.client_id) {
+          let participants = await getParticipants(
+            caseData.id,
+            caseData?.plaintiff?.client_id
+          );
+          participants = participants?.filter(
+            ({ email }) => email !== caseData?.plaintiff.email
+          );
+          for (const participant of participants) {
+            emailPromises.push(() =>
+              formatAndSendEmail(
+                caseData.mediator,
+                caseData,
+                participant,
+                icsData,
+                null
+              )
+            );
+          }
           emailPromises.push(() =>
             formatAndSendEmail(
               caseData.mediator,
@@ -107,6 +157,25 @@ async function sendZoomReminders() {
           );
         }
         if (caseData?.defender?.client_id) {
+          let participants = await getParticipants(
+            caseData.id,
+            caseData?.defender?.client_id
+          );
+          participants = participants?.filter(
+            ({ email }) => email !== caseData?.defender.email
+          );
+          for (const participant of participants) {
+            emailPromises.push(() =>
+              formatAndSendEmail(
+                caseData.mediator,
+                caseData,
+                participant,
+                icsData,
+                null
+              )
+            );
+          }
+
           emailPromises.push(() =>
             formatAndSendEmail(
               caseData.mediator,
@@ -123,6 +192,11 @@ async function sendZoomReminders() {
             )
           );
         }
+
+        emailPromises.push(() =>
+          formatAndSendEmailForMediator(caseData.mediator, caseData, icsData)
+        );
+
         console.log(
           `Zoom Reminders for case ${caseData.id} have been processed.`
         );

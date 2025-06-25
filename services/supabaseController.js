@@ -170,6 +170,59 @@ async function findCaseById(case_id, columns = "*", filters = []) {
   }
 }
 
+async function getParticipants(case_id, client_id) {
+  const { data, error } = await supabase
+    .from("participants")
+    .select("*")
+    .eq("client_id", client_id)
+    .eq("case_id", case_id);
+  if (error) return [];
+  return data;
+}
+
+async function getLatestLog({ case_id, plaintiff_id, defender_id, type }) {
+  try {
+    if (!case_id && (!plaintiff_id || !defender_id)) {
+      throw new Error(
+        "At least one filter parameter is required (case_id, plaintiff_id, defender_id)."
+      );
+    }
+
+    let query = supabase
+      .from("email_logs")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (case_id) {
+      query = query.eq("case_id", case_id);
+    }
+    if (plaintiff_id) {
+      query = query.eq("plaintiff_id", plaintiff_id);
+    }
+    if (defender_id) {
+      query = query.eq("defender_id", defender_id);
+    }
+    if (type) {
+      query = query.eq("type", type);
+    }
+
+    const { data, error } = await query.limit(1);
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    return data[0];
+  } catch (err) {
+    console.error("Error fetching latest log:", err.message);
+    throw err;
+  }
+}
+
 async function sendOnboardingEmailReminder(payload, emailLog = null) {
   const {
     email,
@@ -233,49 +286,6 @@ async function sendOnboardingEmailReminder(payload, emailLog = null) {
   } catch (error) {
     console.log(error);
     throw error;
-  }
-}
-
-async function getLatestLog({ case_id, plaintiff_id, defender_id, type }) {
-  try {
-    if (!case_id && (!plaintiff_id || !defender_id)) {
-      throw new Error(
-        "At least one filter parameter is required (case_id, plaintiff_id, defender_id)."
-      );
-    }
-
-    let query = supabase
-      .from("email_logs")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (case_id) {
-      query = query.eq("case_id", case_id);
-    }
-    if (plaintiff_id) {
-      query = query.eq("plaintiff_id", plaintiff_id);
-    }
-    if (defender_id) {
-      query = query.eq("defender_id", defender_id);
-    }
-    if (type) {
-      query = query.eq("type", type);
-    }
-
-    const { data, error } = await query.limit(1);
-
-    if (error) {
-      throw error;
-    }
-
-    if (!data || data.length === 0) {
-      return null;
-    }
-
-    return data[0];
-  } catch (err) {
-    console.error("Error fetching latest log:", err.message);
-    throw err;
   }
 }
 
@@ -615,6 +625,51 @@ async function sendZoomEmailReminder(payload, emailLog = null) {
   }
 }
 
+async function sendZoomEmailReminderForMediators(payload) {
+  const {
+    email,
+    mediatorName,
+    dateAndTime,
+    zoomURL,
+    caseTitle,
+    caseNumber,
+    is_odr_mediator,
+    calenderBlob,
+  } = payload;
+
+  const data = {
+    transactionalId: is_odr_mediator
+      ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_ODR_MEDIATOR
+      : LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_NON_ODR_MEDIATOR,
+    email,
+    dataVariables: {
+      email,
+      caseTitle,
+      dateAndTime,
+      zoomURL,
+      mediatorName,
+      ...(!is_odr_mediator && {
+        caseNumber: caseNumber || " ",
+      }),
+    },
+    attachments: [
+      {
+        filename: "zoom-invite.ics",
+        contentType: "text/calendar",
+        data: calenderBlob,
+      },
+    ],
+  };
+
+  try {
+    const response = await axios.post(url, data, { headers });
+    return response;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+}
+
 module.exports = {
   loopsHeader: headers,
   loopsUrl: url,
@@ -628,4 +683,6 @@ module.exports = {
   sendHourlyInvoiceReminder,
   markHourlyInvoiceReminderAsSent,
   sendZoomEmailReminder,
+  sendZoomEmailReminderForMediators,
+  getParticipants,
 };
