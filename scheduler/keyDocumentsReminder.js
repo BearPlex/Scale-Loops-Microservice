@@ -4,7 +4,11 @@ const moment = require("moment");
 const {
   sendKeyDocumentEmailReminder,
 } = require("../services/supabaseController");
-const { convertToAMPM, safeParseArray } = require("../utils/functions");
+const {
+  convertToAMPM,
+  safeParseArray,
+  getFullCaseName,
+} = require("../utils/functions");
 const {
   fetchEmailRemainders,
   markReminderAsSent,
@@ -111,7 +115,10 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       dateAndTime: `${moment(caseData?.mediation_date).format(
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
-      caseTitle: caseData?.case_name,
+      caseTitle: getFullCaseName(
+        caseData?.case_name,
+        caseData?.additional_case_names
+      ),
       mediatorEmail: mediator?.email,
     };
 

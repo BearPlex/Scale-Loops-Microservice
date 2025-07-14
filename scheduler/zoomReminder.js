@@ -3,6 +3,7 @@ const moment = require("moment");
 const {
   convertToAMPM,
   generateICSFileForManual,
+  getFullCaseName,
 } = require("../utils/functions");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
@@ -52,7 +53,10 @@ async function formatAndSendEmailForMediator(
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
       zoomURL: caseData?.zoom_link,
-      caseTitle: caseData?.case_name,
+      caseTitle: getFullCaseName(
+        caseData?.case_name,
+        caseData?.additional_case_names
+      ),
       caseNumber: caseData?.case_number,
       is_odr_mediator: mediator?.is_odr_mediator,
       calenderBlob: btoa(icsCalendarData),
@@ -88,7 +92,10 @@ async function formatAndSendEmail(
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
       zoomURL: caseData?.zoom_link,
-      caseTitle: caseData?.case_name,
+      caseTitle: getFullCaseName(
+        caseData?.case_name,
+        caseData?.additional_case_names
+      ),
       caseNumber: caseData?.case_number,
       is_odr_mediator: mediator?.is_odr_mediator,
       calenderBlob: btoa(icsCalendarData),

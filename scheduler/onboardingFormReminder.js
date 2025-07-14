@@ -5,6 +5,7 @@ const {
   getNextValidReminder,
   countValidReminders,
   convertCountingWordToDigit,
+  getFullCaseName,
 } = require("../utils/functions");
 const {
   fetchEmailRemainders,
@@ -85,7 +86,10 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
       caseNumber: caseData?.case_number,
-      caseTitle: caseData?.case_name,
+      caseTitle: getFullCaseName(
+        caseData?.case_name,
+        caseData?.additional_case_names
+      ),
       mediatorEmail: mediator?.email,
       briefDueDate: briefDays,
       // `${moment(caseData?.mediation_date).format(

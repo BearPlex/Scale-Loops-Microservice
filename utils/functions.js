@@ -346,7 +346,10 @@ function escapeHtml(text) {
 
 function generateICSFileForManual(caseDetail, mediatorDetails) {
   const [hours, minutes] = caseDetail?.case_schedule_time?.split(":");
-  const title = caseDetail?.case_name;
+  const title = getFullCaseName(
+    caseDetail?.case_name,
+    caseDetail?.additional_case_names
+  );
   const url = caseDetail?.zoom_link;
   const location = url;
   const description = `Zoom Meeting Link: ${url}`;
@@ -393,6 +396,18 @@ END:VCALENDAR
   return icsFileContent;
 }
 
+function getFullCaseName(caseName = "", additionalCaseNames = []) {
+  if (additionalCaseNames?.length <= 0) {
+    return caseName;
+  }
+
+  return `${caseName}${
+    additionalCaseNames?.length > 0
+      ? `, ${additionalCaseNames?.join(", ")}`
+      : " "
+  }`;
+}
+
 module.exports = {
   convertCentsToDollars,
   convertDollarToCents,
@@ -411,4 +426,5 @@ module.exports = {
   safeParseArray,
   generateCasesHtml,
   generateICSFileForManual,
+  getFullCaseName,
 };

@@ -10,6 +10,7 @@ const {
   generateInvoiceUrlFrontend,
   convertCentsToDollars,
   convertToTimezone,
+  getFullCaseName,
 } = require("../utils/functions");
 const {
   countValidReminders,
@@ -25,7 +26,7 @@ async function getHourlyInvoicesReminders() {
       invoice:hourly_invoice_id!inner(*,
       mediator:mediator_id(first_name,last_name,email,user_id,mediator_id,email_cc,timezone),
       client:client_id(name,email,client_id),
-      case:case_id(id,case_schedule_time,mediation_date,case_number,case_name,plaintiff_id,defender_id))`
+      case:case_id(id,case_schedule_time,mediation_date,case_number,case_name,additional_case_names,plaintiff_id,defender_id))`
     )
     .neq("hourly_invoice_id.status", "paid")
     .neq("hourly_invoice_id.status", "paid_manually");
@@ -55,7 +56,10 @@ const sendPaymentEmail = async (invoice, reminderObj = null) => {
 
     const baseEmailData = {
       name: clientData?.name,
-      caseTitle: caseData?.case_name,
+      caseTitle: getFullCaseName(
+        caseData?.case_name,
+        caseData?.additional_case_names
+      ),
       mediatorName: `${mediatorData?.first_name} ${mediatorData?.last_name}`,
       mediatorEmail: mediatorData?.email,
       mediationDateAndTime: `${moment(caseData?.mediation_date).format(

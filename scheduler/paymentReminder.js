@@ -6,6 +6,7 @@ const {
   formatAmount,
   convertToAMPM,
   generateInvoiceUrlFrontend,
+  getFullCaseName,
 } = require("../utils/functions");
 const {
   fetchEmailRemainders,
@@ -101,7 +102,10 @@ const sendPaymentEmail = async (
               .format("MMMM DD, YYYY")
           : moment(xDaysAfterOnBoarding).startOf("day").format("MMMM DD, YYYY"),
       caseNumber: caseData?.case_number,
-      caseTitle: caseData?.case_name,
+      caseTitle: getFullCaseName(
+        caseData?.case_name,
+        caseData?.additional_case_names
+      ),
       // paymentURL: paymentInfo?.payment_url,
 
       paymentURL:
