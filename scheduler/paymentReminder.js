@@ -19,29 +19,64 @@ const {
 } = require("../utils/functions");
 
 async function getCases(forClient) {
-  const today = moment().utc().startOf("day").format("YYYY-MM-DD");
-  const { data, error } = await supabase
-    .from("cases")
-    .select(
-      `*,
-      onboarding(*),
-      mediator:mediator_id(*),
-      defender_id(*,onboarding(*),payments(*)),
-      plaintiff_id(*,onboarding(*),payments(*)) `
-    )
-    .gt("mediation_date", today);
+  try {
+    const today = moment().utc().startOf("day").format("YYYY-MM-DD");
 
-  if (error) {
+    const { data: cases, error: casesError } = await supabase
+      .from("cases")
+      .select(
+        `
+        *,
+        onboarding(*),
+        mediator:mediator_id(*),
+        defender_id(*, onboarding(*), payments(*)),
+        plaintiff_id(*, onboarding(*), payments(*))
+        `
+      )
+      .gt("mediation_date", today);
+    // .eq("id", 1188);
+
+    if (casesError) {
+      console.error(
+        "Error fetching cases in payment reminder cron job:",
+        casesError
+      );
+      return [];
+    }
+
+    if (!cases?.length) return [];
+
+    const caseIds = cases.map((c) => c?.id);
+
+    const { data: participants, error: participantsError } = await supabase
+      .from("participants")
+      .select("*")
+      .in("case_id", caseIds);
+
+    if (participantsError) {
+      console.error("Error fetching participants:", participantsError);
+    }
+
+    return cases.map((x) => {
+      const clientKey =
+        forClient === "defendant" ? "defender_id" : "plaintiff_id";
+      const clientData = x[clientKey] || {};
+      const filteredPayments =
+        clientData.payments?.filter((p) => p.case_id === x.id) || [];
+
+      const caseParticipants =
+        participants?.filter((p) => p.case_id === x.id) || [];
+
+      return {
+        ...x,
+        payments: filteredPayments,
+        participants: caseParticipants,
+      };
+    });
+  } catch (err) {
+    console.error("Unexpected error in getCases:", err);
     return [];
   }
-  return data
-    ? data.map((x) => ({
-        ...x,
-        payments: x[
-          forClient === "defendant" ? "defender_id" : "plaintiff_id"
-        ]?.payments?.filter((y) => y.case_id === x.id),
-      }))
-    : [];
 }
 
 const getClientInfo = async (clientId) => {
@@ -122,6 +157,31 @@ const sendPaymentEmail = async (
       { ...baseEmailData, email: clientData?.email, case_id: caseData?.id },
       reminderArr
     );
+
+    const alternateEmails =
+      caseData?.participants?.find(
+        (x) =>
+          x.client_id === clientData.client_id && x.email === clientData.email
+      )?.alternate_emails || [];
+
+    console.log(
+      "Case ID ->",
+      caseData?.id,
+      "Client Email ->",
+      clientData?.email,
+      "->  alternateEmails",
+      alternateEmails
+    );
+
+    if (Array.isArray(alternateEmails) && alternateEmails.length > 0) {
+      for (const alternateEmail of alternateEmails) {
+        await sendPaymentsReminders({
+          ...baseEmailData,
+          email: alternateEmail,
+          case_id: caseData?.id,
+        });
+      }
+    }
 
     if (
       caseData?.mediator?.email_cc &&

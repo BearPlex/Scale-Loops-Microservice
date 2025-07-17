@@ -31,30 +31,56 @@ async function getMediator() {
 }
 
 async function getMediatorCases(mediatorId, date) {
-  const { data, error } = await supabase
-    .from("cases")
-    .select("*,onboarding(*)")
-    .gt("mediation_date", date)
-    .eq("mediator_id", mediatorId);
-  // .in("id", [1046]);
+  try {
+    const { data: cases, error: casesError } = await supabase
+      .from("cases")
+      .select("*,onboarding(*)")
+      .gt("mediation_date", date)
+      .eq("mediator_id", mediatorId);
+    // .eq("id", 1188);
 
-  if (error) {
+    if (casesError) {
+      console.error("Error fetching cases:", casesError);
+      return [];
+    }
+
+    if (!cases?.length) return [];
+
+    const caseIds = cases.map((c) => c.id);
+    const { data: participants, error: participantsError } = await supabase
+      .from("participants")
+      .select("*")
+      .in("case_id", caseIds);
+
+    if (participantsError) {
+      console.error("Error fetching participants:", participantsError);
+    }
+
+    return cases.map((caseItem) => {
+      const caseParticipants =
+        participants?.filter((p) => p.case_id === caseItem.id) || [];
+
+      const isPlaintiffDone = caseItem.onboarding?.some(
+        ({ client_id, completed }) =>
+          client_id === caseItem.plaintiff_id && completed === true
+      );
+
+      const isDefendantDone = caseItem.onboarding?.some(
+        ({ client_id, completed }) =>
+          client_id === caseItem.defender_id && completed === true
+      );
+
+      return {
+        ...caseItem,
+        participants: caseParticipants,
+        isPlaintiffDone,
+        isDefendantDone,
+      };
+    });
+  } catch (err) {
+    console.error("Unexpected error:", err);
     return [];
   }
-
-  if (!data?.length) return [];
-
-  return data.map((obj) => {
-    const isPlaintiffDone = obj?.onboarding?.some(
-      ({ client_id, completed }) =>
-        client_id === obj?.plaintiff_id && completed === true
-    );
-    const isDefendantDone = obj?.onboarding?.some(
-      ({ client_id, completed }) =>
-        client_id === obj?.defender_id && completed === true
-    );
-    return { ...obj, isPlaintiffDone, isDefendantDone };
-  });
 }
 
 async function getClientInformation(client_id) {
@@ -99,6 +125,11 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       // )} ${caseData?.slot_type === "fullday" ? "onwards" : ""})`,
     };
 
+    const alternateEmails =
+      caseData?.participants?.find(
+        (x) => x.client_id === client.client_id && x.email === client.email
+      )?.alternate_emails || [];
+
     console.log("Case ID ->", caseData?.id, "  baseData", baseData);
     // Send email to the client
     await sendOnboardingEmailReminder(
@@ -106,8 +137,26 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       emailLog
     );
 
-    // console.log("mediator?.email_cc", mediator?.email_cc);
+    console.log(
+      "Case ID ->",
+      caseData?.id,
+      "Client Email ->",
+      client?.email,
+      "->  alternateEmails",
+      alternateEmails
+    );
 
+    if (Array.isArray(alternateEmails) && alternateEmails.length > 0) {
+      for (const alternateEmail of alternateEmails) {
+        await sendOnboardingEmailReminder({
+          ...baseData,
+          email: alternateEmail,
+          case_id: caseData?.id,
+        });
+      }
+    }
+
+    // console.log("mediator?.email_cc", mediator?.email_cc);
     if (mediator?.email_cc && Array.isArray(mediator.email_cc)) {
       for (const ccEmail of mediator.email_cc) {
         await sendOnboardingEmailReminder({
@@ -158,6 +207,7 @@ async function processMediatorCases(mediator, today) {
   try {
     const mediatorCases = await getMediatorCases(mediator?.user_id, today);
     // console.log("mediatorCases", mediatorCases);
+    // return;
     for (const caseData of mediatorCases) {
       try {
         if (caseData.isPlaintiffDone && caseData.isDefendantDone) {
@@ -174,6 +224,7 @@ async function processMediatorCases(mediator, today) {
           mediator?.user_id,
           today
         );
+
         console.log(
           "case id:",
           caseData?.id,
@@ -187,6 +238,7 @@ async function processMediatorCases(mediator, today) {
           emailReminders?.reminders,
           today
         );
+
         console.log(
           "case id:",
           caseData?.id,

@@ -148,10 +148,9 @@ async function weeklyMediationRecap() {
   }
 
   try {
-    await sendWeeklyRecapEmailToMediator(
-      // "74b49fc0-5d92-4a04-a52a-7f25d4441e9c" // Haider iqbal (STAGING)
-      // "ea514a48-e99f-44e3-b5b7-dbe9e9abe473" // Hamad Peraiz (APP)
-    );
+    await sendWeeklyRecapEmailToMediator();
+    // "74b49fc0-5d92-4a04-a52a-7f25d4441e9c" // Haider iqbal (STAGING)
+    // "ea514a48-e99f-44e3-b5b7-dbe9e9abe473" // Hamad Peraiz (APP)
   } catch (err) {
     console.log(
       `Error While Sending Weekly Mediation Recap: Date: ${today}`,

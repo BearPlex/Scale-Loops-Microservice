@@ -20,6 +20,7 @@ async function getOdrMediator() {
     .select("*")
     .eq("is_odr_mediator", true);
   // .eq("email", "hiqbal@bearplex.com");
+
   if (error) {
     return [];
   }
@@ -27,71 +28,91 @@ async function getOdrMediator() {
 }
 
 async function getMediatorCases(mediatorId, date) {
-  const { data, error } = await supabase
-    .from("cases")
-    .select(`*,onboarding(*),odr_case_meta_data(*)`)
-    .gt("mediation_date", date)
-    .eq("mediator_id", mediatorId);
-  // .eq("id", 900);
+  try {
+    const { data: cases, error: casesError } = await supabase
+      .from("cases")
+      .select(`*, onboarding(*), odr_case_meta_data(*)`)
+      .gt("mediation_date", date)
+      .eq("mediator_id", mediatorId);
+    // .eq("id", 1188);
 
-  if (error) {
+    if (casesError) {
+      console.error("Error fetching cases:", casesError);
+      return [];
+    }
+
+    if (!cases?.length) return [];
+
+    const caseIds = cases.map((c) => c.id);
+
+    const { data: participants, error: participantsError } = await supabase
+      .from("participants")
+      .select("*")
+      .in("case_id", caseIds);
+
+    if (participantsError) {
+      console.error("Error fetching participants:", participantsError);
+    }
+
+    return cases.map((obj) => {
+      const caseParticipants =
+        participants?.filter((p) => p.case_id === obj.id) || [];
+
+      const hasPlaintiffOnboarding = obj?.onboarding?.some(
+        ({ client_id, completed }) =>
+          client_id === obj?.plaintiff_id && completed === true
+      );
+
+      const hasPlaintiffUploadDoc = obj?.odr_case_meta_data?.some(
+        ({
+          client_id,
+          additional_docs,
+          mediator_statement_docs,
+          court_adr_order_docs,
+        }) =>
+          client_id === obj?.plaintiff_id &&
+          (additional_docs?.length > 0 ||
+            mediator_statement_docs?.length > 0 ||
+            court_adr_order_docs?.length > 0)
+      );
+
+      const hasDefendantOnboarding = obj?.onboarding?.some(
+        ({ client_id, completed }) =>
+          client_id === obj?.defender_id && completed === true
+      );
+
+      const hasDefendantUploadDoc = obj?.odr_case_meta_data?.some(
+        ({
+          client_id,
+          additional_docs,
+          mediator_statement_docs,
+          court_adr_order_docs,
+        }) =>
+          client_id === obj?.defender_id &&
+          (additional_docs?.length > 0 ||
+            mediator_statement_docs?.length > 0 ||
+            court_adr_order_docs?.length > 0)
+      );
+
+      const captionPage = safeParseArray(obj?.caption_page);
+
+      return {
+        ...obj,
+        participants: caseParticipants,
+        plaintiffStatus: {
+          onBoarding: hasPlaintiffOnboarding,
+          keyDocument: captionPage?.length > 0 || hasPlaintiffUploadDoc,
+        },
+        defendantStatus: {
+          onBoarding: hasDefendantOnboarding,
+          keyDocument: hasDefendantUploadDoc,
+        },
+      };
+    });
+  } catch (err) {
+    console.error("Unexpected error in getMediatorCases:", err);
     return [];
   }
-
-  if (!data?.length) return [];
-
-  return data.map((obj) => {
-    // Check for plaintiff's onboarding and key document status
-    const hasPlaintiffOnboarding = obj?.onboarding?.some(
-      ({ client_id, completed }) =>
-        client_id === obj?.plaintiff_id && completed === true
-    );
-    const hasPlaintiffUploadDoc = obj?.odr_case_meta_data?.some(
-      ({
-        client_id,
-        additional_docs,
-        mediator_statement_docs,
-        court_adr_order_docs,
-      }) =>
-        client_id === obj?.plaintiff_id &&
-        (additional_docs?.length > 0 ||
-          mediator_statement_docs?.length > 0 ||
-          court_adr_order_docs?.length > 0)
-    );
-
-    // Check for defendant's onboarding and key document status
-    const hasDefendantOnboarding = obj?.onboarding?.some(
-      ({ client_id, completed }) =>
-        client_id === obj?.defender_id && completed === true
-    );
-
-    const hasDefendantUploadDoc = obj?.odr_case_meta_data?.some(
-      ({
-        client_id,
-        additional_docs,
-        mediator_statement_docs,
-        court_adr_order_docs,
-      }) =>
-        client_id === obj?.defender_id &&
-        (additional_docs?.length > 0 ||
-          mediator_statement_docs?.length > 0 ||
-          court_adr_order_docs?.length > 0)
-    );
-
-    const captionPage = safeParseArray(obj?.caption_page);
-
-    return {
-      ...obj,
-      plaintiffStatus: {
-        onBoarding: hasPlaintiffOnboarding,
-        keyDocument: captionPage?.length > 0 || hasPlaintiffUploadDoc,
-      },
-      defendantStatus: {
-        onBoarding: hasDefendantOnboarding,
-        keyDocument: hasDefendantUploadDoc,
-      },
-    };
-  });
 }
 
 async function getClientInformation(client_id) {
@@ -126,6 +147,29 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       { ...baseData, email: client.email },
       emailLog
     );
+
+    const alternateEmails =
+      caseData?.participants?.find(
+        (x) => x.client_id === client?.client_id && x.email === client?.email
+      )?.alternate_emails || [];
+
+    console.log(
+      "Case ID ->",
+      caseData?.id,
+      "Client Email ->",
+      client?.email,
+      "->  alternateEmails",
+      alternateEmails
+    );
+
+    if (Array.isArray(alternateEmails) && alternateEmails?.length > 0) {
+      for (const alternateEmail of alternateEmails) {
+        await sendKeyDocumentEmailReminder({
+          ...baseData,
+          email: alternateEmail,
+        });
+      }
+    }
 
     if (mediator?.email_cc && Array.isArray(mediator.email_cc)) {
       for (const ccEmail of mediator.email_cc) {
@@ -215,7 +259,12 @@ async function sendKeyDocumentsReminders() {
                   event: "Key Document Reminder Sent",
                 })
               );
+            } else {
+              console.log(
+                `No unsent Key Document Reminders for case ${caseData.id} for plaintiff , Date: ${today}`
+              );
             }
+
             if (
               defendantData &&
               (!caseData.defendantStatus.onBoarding ||
@@ -229,6 +278,10 @@ async function sendKeyDocumentsReminders() {
                   mediator: mediator.mediator_id,
                   event: "Key Document Reminder Sent",
                 })
+              );
+            } else {
+              console.log(
+                `No unsent Key Document Reminders for case ${caseData.id} for defendant , Date: ${today}`
               );
             }
 
@@ -264,5 +317,4 @@ async function sendKeyDocumentsReminders() {
     );
   }
 }
-
 module.exports = { sendKeyDocumentsReminders };

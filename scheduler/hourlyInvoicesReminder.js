@@ -19,24 +19,64 @@ const {
 } = require("../utils/functions");
 
 async function getHourlyInvoicesReminders() {
-  const { data, error } = await supabase
-    .from("hourly_invoices_reminders")
-    .select(
-      `*,
-      invoice:hourly_invoice_id!inner(*,
-      mediator:mediator_id(first_name,last_name,email,user_id,mediator_id,email_cc,timezone),
-      client:client_id(name,email,client_id),
-      case:case_id(id,case_schedule_time,mediation_date,case_number,case_name,additional_case_names,plaintiff_id,defender_id))`
-    )
-    .neq("hourly_invoice_id.status", "paid")
-    .neq("hourly_invoice_id.status", "paid_manually");
-  // .in("hourly_invoice_id", [699, 700]);
+  try {
+    const { data: reminders, error } = await supabase
+      .from("hourly_invoices_reminders")
+      .select(
+        `*,
+        invoice:hourly_invoice_id!inner(*,
+          mediator:mediator_id(first_name,last_name,email,user_id,mediator_id,email_cc,timezone),
+          client:client_id(name,email,client_id),
+          case:case_id(id,case_schedule_time,mediation_date,case_number,case_name,additional_case_names,plaintiff_id,defender_id)
+        )`
+      )
+      .neq("hourly_invoice_id.status", "paid")
+      .neq("hourly_invoice_id.status", "paid_manually");
+    // .in("id", [206, 207]);
 
-  if (error) {
+    if (error) {
+      console.error("Error fetching reminders:", error);
+      return [];
+    }
+
+    if (!reminders?.length) return [];
+
+    const caseIds = reminders
+      .map((r) => r.invoice?.case?.id)
+      .filter((id) => id !== undefined);
+
+    if (!caseIds.length) return reminders;
+
+    const { data: participants, error: participantsError } = await supabase
+      .from("participants")
+      .select("*")
+      .in("case_id", caseIds);
+
+    if (participantsError) {
+      console.error("Error fetching participants:", participantsError);
+    }
+
+    const mergedData = reminders.map((reminder) => {
+      const caseObj = reminder.invoice?.case || {};
+      const caseParticipants =
+        participants?.filter((p) => p.case_id === caseObj.id) || [];
+      return {
+        ...reminder,
+        invoice: {
+          ...reminder.invoice,
+          case: {
+            ...caseObj,
+            participants: caseParticipants,
+          },
+        },
+      };
+    });
+
+    return mergedData;
+  } catch (err) {
+    console.error("Unexpected error in getHourlyInvoicesReminders:", err);
     return [];
   }
-
-  return data;
 }
 
 const sendPaymentEmail = async (invoice, reminderObj = null) => {
@@ -79,10 +119,36 @@ const sendPaymentEmail = async (invoice, reminderObj = null) => {
             ),
       // caseNumber: caseData?.case_number,
     };
+
     await sendHourlyInvoiceReminder(
       { ...baseEmailData, email: clientData?.email, case_id: caseData?.id },
       reminderObj
     );
+
+    const alternateEmails =
+      caseData?.participants?.find(
+        (x) =>
+          x.client_id === clientData?.client_id && x.email === clientData?.email
+      )?.alternate_emails || [];
+
+    console.log(
+      "Case ID ->",
+      caseData?.id,
+      "Client Email ->",
+      clientData?.email,
+      "->  alternateEmails",
+      alternateEmails
+    );
+
+    if (Array.isArray(alternateEmails) && alternateEmails?.length > 0) {
+      for (const alternateEmail of alternateEmails) {
+        await sendHourlyInvoiceReminder({
+          ...baseEmailData,
+          email: alternateEmail,
+          case_id: caseData?.id,
+        });
+      }
+    }
 
     if (mediatorData?.email_cc && Array.isArray(mediatorData?.email_cc)) {
       for (const ccEmail of mediatorData?.email_cc) {
@@ -109,7 +175,6 @@ async function hourlyInvoicesReminder() {
 
   try {
     const invoicesReminders = await getHourlyInvoicesReminders();
-
     for (const invoiceReminder of invoicesReminders) {
       const totalReminders = countValidReminders(invoiceReminder?.reminders);
       const todaysReminders = Object.entries(invoiceReminder?.reminders || {})
