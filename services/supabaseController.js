@@ -228,64 +228,78 @@ async function sendOnboardingEmailReminder(payload, emailLog = null) {
     email,
     name,
     mediatorName,
-    onboardingURL,
-    dateAndTime,
-    caseNumber,
     caseTitle,
+    caseNumber,
+    dateAndTime,
+    onboardingURL,
     mediatorEmail,
     case_id,
-
-    briefDueDate,
+    briefDueDate, // unused currently
   } = payload;
 
-  const caseData = await findCaseById(case_id, "*,mediator:mediator_id(*)");
-
-  const data = {
-    transactionalId: caseData?.mediator?.is_odr_mediator
-      ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ONBOARDING_REMINDER_FOR_ODR_MEDIATOR
-      : LOOPS_EMAIL_TRANSACTIONAL_IDS.ONBOARDING_REMINDER_FOR_MEDIATOR,
-    email,
-    dataVariables: {
-      name,
-      email,
-      caseTitle,
-      dateAndTime,
-      onboardingURL,
-      mediatorName,
-      mediatorEmail,
-      ...(!caseData?.mediator?.is_odr_mediator && {
-        caseNumber: caseNumber || " ",
-      }),
-    },
-  };
-
   try {
-    const response = await axios.post(url, data, { headers });
-    // console.log(response, "response from loops api");
-    if (response.status === 200) {
-      console.log("Case ID: ", case_id, " -> emailLog", emailLog);
-      if (emailLog !== null) {
-        const { error } = await supabase.from("email_logs").insert([emailLog]);
+    const caseData = await findCaseById(case_id, "*,mediator:mediator_id(*)");
+    const customMediator =
+      CUSTOM_MEDIATORS_EMAILS?.[caseData?.mediator?.user_id];
 
-        console.log("Case ID: ", case_id, " -> emailLog | error", error);
+    const { payload: emailPayload, transcationId } =
+      customMediator?.email &&
+      customMediator?.ONBOARDING_REMINDER_TO_PARTY &&
+      typeof customMediator?.ONBOARDING_REMINDER_TO_PARTY === "function"
+        ? customMediator.ONBOARDING_REMINDER_TO_PARTY({
+            name,
+            mediatorName,
+            caseTitle,
+            dateAndTime,
+            onboardingURL,
+            mediatorEmail,
+            caseNumber,
+          })
+        : {
+            payload: {
+              name,
+              caseTitle,
+              dateAndTime,
+              onboardingURL,
+              mediatorName,
+              mediatorEmail,
+              ...(!caseData?.mediator?.is_odr_mediator && {
+                caseNumber: caseNumber || " ",
+              }),
+            },
+            transcationId: caseData?.mediator?.is_odr_mediator
+              ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ONBOARDING_REMINDER_FOR_ODR_MEDIATOR
+              : LOOPS_EMAIL_TRANSACTIONAL_IDS.ONBOARDING_REMINDER_FOR_MEDIATOR,
+          };
+
+    const data = {
+      transactionalId: transcationId,
+      email,
+      dataVariables: emailPayload,
+    };
+
+    const response = await axios.post(url, data, { headers });
+    console.log("✅ Onboarding reminder email sent:", response.data);
+
+    if (emailLog) {
+      const { error } = await supabase.from("email_logs").insert([emailLog]);
+      if (error) {
+        console.error(
+          `⚠️ Failed to insert email log for case_id: ${case_id}`,
+          error
+        );
+      } else {
+        console.log(`✅ Email log inserted for case_id: ${case_id}`);
       }
     }
-    // Loops API might respond with 200 and `success: false`
-    if (response.status !== 200) {
-      console.error(
-        "Case ID: ",
-        case_id,
-        " -> Loops API error response:",
-        response.data
-      );
-      throw new Error(
-        `Loops API error: ${JSON.stringify(response.data.error)}`
-      );
-    }
-    return response;
-  } catch (error) {
-    console.log(error);
-    throw error;
+
+    return { success: true, data: response.data };
+  } catch (err) {
+    console.error(
+      "❌ Error sending onboarding reminder:",
+      err.response?.data || err.message
+    );
+    return { success: false, error: err.response?.data || err.message };
   }
 }
 
@@ -396,43 +410,60 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
     mediatorUserId,
   } = payload;
 
-  const isCustomMediator = CUSTOM_MEDIATORS_EMAILS[mediatorUserId];
-
-  const data = {
-    transactionalId: isCustomMediator?.email
-      ? isCustomMediator?.BRIEF_REMINDER({
-          name,
-          dateAndTime,
-          caseTitle,
-          caseNumber: caseNumber ? caseNumber : " ",
-          onboardingURL,
-          mediatorName,
-          mediatorEmail,
-        })?.transcationId
-      : LOOPS_EMAIL_TRANSACTIONAL_IDS.BRIEF_FOR_ODR_MEDIATOR,
-    email,
-    dataVariables: {
-      name,
-      dateAndTime,
-      caseTitle,
-      caseNumber: caseNumber ? caseNumber : " ",
-      onboardingURL,
-      mediatorName,
-      mediatorEmail,
-    },
-  };
-
   try {
+    const customMediator = CUSTOM_MEDIATORS_EMAILS?.[mediatorUserId];
+
+    const { payload: emailPayload, transcationId } =
+      customMediator?.email &&
+      customMediator?.BRIEF_REMINDER_TO_PARTY &&
+      typeof customMediator?.BRIEF_REMINDER_TO_PARTY === "function"
+        ? customMediator.BRIEF_REMINDER_TO_PARTY({
+            name,
+            dateAndTime,
+            caseTitle,
+            caseNumber: caseNumber || " ",
+            onboardingURL,
+            mediatorName,
+            mediatorEmail,
+          })
+        : {
+            payload: {
+              name,
+              dateAndTime,
+              caseTitle,
+              caseNumber: caseNumber || " ",
+              onboardingURL,
+              mediatorName,
+              mediatorEmail,
+            },
+            transcationId: LOOPS_EMAIL_TRANSACTIONAL_IDS.BRIEF_FOR_ODR_MEDIATOR,
+          };
+
+    const data = {
+      transactionalId: transcationId,
+      email,
+      dataVariables: emailPayload,
+    };
+
     const response = await axios.post(url, data, { headers });
-    if (data) {
-      if (emailLog !== null) {
-        await supabase.from("email_logs").insert([emailLog]);
+    console.log("✅ Brief reminder email sent:", response.data);
+
+    if (emailLog) {
+      const { error } = await supabase.from("email_logs").insert([emailLog]);
+      if (error) {
+        console.error("⚠️ Failed to insert email log:", error);
+      } else {
+        console.log("✅ Email log inserted successfully.");
       }
     }
-    console.log("response:sendBriefEmailReminder", data);
-    return response;
-  } catch (error) {
-    console.log("error:sendBriefEmailReminder", error?.response);
+
+    return { success: true, data: response.data };
+  } catch (err) {
+    console.error(
+      "❌ Error sending brief reminder:",
+      err.response?.data || err.message
+    );
+    return { success: false, error: err.response?.data || err.message };
   }
 }
 
@@ -490,70 +521,78 @@ async function sendHourlyInvoiceReminder(payload, reminderArr = null) {
     caseTitle,
     mediationDateAndTime,
     case_id,
-    // dueDate,
-    // caseNumber,
+    dueDate,
+    caseNumber,
   } = payload;
 
-  const caseData = await findCaseById(case_id, "*,mediator:mediator_id(*)");
-
-  const data = {
-    transactionalId: caseData?.mediator?.is_odr_mediator
-      ? LOOPS_EMAIL_TRANSACTIONAL_IDS.HOURLY_INVOICE_REMINDER
-      : LOOPS_EMAIL_TRANSACTIONAL_IDS.HOURLY_INVOICE_REMINDER,
-
-    email,
-    dataVariables: {
-      name,
-      totalDue,
-      paymentURL: paymentURL ? paymentURL : " ",
-      mediatorName,
-      mediatorEmail,
-      caseTitle,
-      dateAndTime: mediationDateAndTime,
-      // dueDate,
-      // ...(!caseData?.mediator?.is_odr_mediator && {
-      //   caseNumber: caseNumber || " ",
-      // }),
-    },
-  };
   try {
-    const response = await axios.post(url, data, { headers });
-    if (response) {
-      if (reminderArr !== null && Array.isArray(reminderArr)) {
-        const insertionPromises = reminderArr.map(async (emailLog) => {
-          const filterCriteria = {
-            case_id: emailLog.case_id,
-            type: emailLog.type,
+    const caseData = await findCaseById(case_id, "*,mediator:mediator_id(*)");
+    const customMediator =
+      CUSTOM_MEDIATORS_EMAILS?.[caseData?.mediator?.user_id];
+
+    const { payload: emailPayload, transcationId } =
+      customMediator?.email &&
+      customMediator?.HOURLY_PAYMENT_REMINDER_TO_PARTY &&
+      typeof customMediator?.HOURLY_PAYMENT_REMINDER_TO_PARTY === "function"
+        ? customMediator.HOURLY_PAYMENT_REMINDER_TO_PARTY({
+            name,
+            mediatorName,
+            totalDue,
+            paymentURL,
+            mediatorEmail,
+            caseTitle,
+            mediationDateAndTime: mediationDateAndTime,
+            dueDate,
+            caseNumber,
+          })
+        : {
+            payload: {
+              name,
+              mediatorName,
+              totalDue,
+              paymentURL: paymentURL || " ",
+              mediatorEmail,
+              caseTitle,
+              dateAndTime: mediationDateAndTime,
+              // dueDate: dueDate || "",
+              // caseNumber: caseNumber || "",
+            },
+            transcationId:
+              LOOPS_EMAIL_TRANSACTIONAL_IDS.HOURLY_INVOICE_REMINDER,
           };
-          if (emailLog.plaintiff_id?.client_id) {
-            filterCriteria.plaintiff_id = emailLog.plaintiff_id?.client_id;
-          }
-          if (emailLog.defender_id?.client_id) {
-            filterCriteria.defender_id = emailLog.defender_id?.client_id;
-          }
 
-          const { data, error } = await supabase
-            .from("email_logs")
-            .insert([emailLog]);
+    const data = {
+      transactionalId: transcationId,
+      email,
+      dataVariables: emailPayload,
+    };
 
-          if (error) {
-            console.error(
-              `Error inserting email log: ${JSON.stringify(emailLog)}`,
-              error
-            );
-          } else {
-            console.log(
-              `Successfully inserted email log: ${JSON.stringify(data)}`
-            );
-          }
-        });
-        await Promise.all(insertionPromises);
-      }
+    const response = await axios.post(url, data, { headers });
+    console.log("✅ Reminder email sent successfully:", response.data);
+
+    if (Array.isArray(reminderArr) && reminderArr.length > 0) {
+      const insertionPromises = reminderArr.map(async (emailLog) => {
+        const { error } = await supabase.from("email_logs").insert([emailLog]);
+        if (error) {
+          console.error(
+            `⚠️ Failed to insert email log: ${JSON.stringify(emailLog)}`,
+            error
+          );
+        } else {
+          console.log(`✅ Email log inserted for case_id: ${emailLog.case_id}`);
+        }
+      });
+
+      await Promise.all(insertionPromises);
     }
-    return response;
-  } catch (error) {
-    console.error("error:sendPaymentsReminders", error?.response?.data);
-    throw error;
+
+    return { success: true, data: response.data };
+  } catch (err) {
+    console.error(
+      "❌ Error sending payment reminder:",
+      err.response?.data || err.message
+    );
+    return { success: false, error: err.response?.data || err.message };
   }
 }
 
@@ -572,56 +611,72 @@ async function sendZoomEmailReminder(payload, emailLog = null) {
     case_id,
   } = payload;
 
-  const data = {
-    transactionalId: is_odr_mediator
-      ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_ODR_MEDIATOR
-      : LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_MEDIATOR,
-    email,
-    dataVariables: {
-      name,
-      email,
-      caseTitle,
-      dateAndTime,
-      zoomURL,
-      mediatorName,
-      mediatorEmail,
-      ...(!is_odr_mediator && {
-        caseNumber: caseNumber || " ",
-      }),
-    },
-    attachments: [
-      {
-        filename: "zoom-invite.ics",
-        contentType: "text/calendar",
-        data: calenderBlob,
-      },
-    ],
-  };
-
   try {
+    const caseData = await findCaseById(case_id, "*,mediator:mediator_id(*)");
+
+    const customMediator =
+      CUSTOM_MEDIATORS_EMAILS?.[caseData?.mediator?.user_id];
+
+    const { payload: emailPayload, transcationId } =
+      customMediator?.email &&
+      customMediator?.ZOOM_LINK_REMINDER_TO_PARTY &&
+      typeof customMediator?.ZOOM_LINK_REMINDER_TO_PARTY === "function"
+        ? customMediator.ZOOM_LINK_REMINDER_TO_PARTY({
+            name,
+            caseTitle,
+            dateAndTime,
+            zoomURL,
+            mediatorName,
+            mediatorEmail,
+            caseNumber,
+          })
+        : {
+            payload: {
+              name,
+              caseTitle,
+              dateAndTime,
+              zoomURL,
+              mediatorName,
+              mediatorEmail,
+              ...(!is_odr_mediator && { caseNumber: caseNumber || " " }),
+            },
+            transcationId: is_odr_mediator
+              ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_ODR_MEDIATOR
+              : LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_MEDIATOR,
+          };
+
+    const data = {
+      transactionalId: transcationId,
+      email,
+      dataVariables: emailPayload,
+      attachments: [
+        {
+          filename: "zoom-invite.ics",
+          contentType: "text/calendar",
+          data: calenderBlob,
+        },
+      ],
+    };
+
     const response = await axios.post(url, data, { headers });
-    if (response.status === 200) {
-      if (emailLog !== null) {
-        const { error } = await supabase.from("email_logs").insert([emailLog]);
-        console.log("Case ID: ", case_id, " -> emailLog | error", error);
+    console.log("✅ Zoom reminder email sent:", response.data);
+
+    if (emailLog) {
+      const { error } = await supabase.from("email_logs").insert([emailLog]);
+      if (error) {
+        console.error("⚠️ Failed to insert email log:", error);
+      } else {
+        console.log("✅ Email log inserted successfully.");
       }
     }
-    // Loops API might respond with 200 and `success: false`
-    if (response.status !== 200) {
-      console.error(
-        "Case ID: ",
-        case_id,
-        " -> Loops API error response:",
-        response.data
-      );
-      throw new Error(
-        `Loops API error: ${JSON.stringify(response.data.error)}`
-      );
-    }
-    return response;
-  } catch (error) {
-    console.log(error);
-    throw error;
+
+    return { success: true, data: response.data };
+  } catch (err) {
+    console.error(
+      "❌ Error sending Zoom reminder:",
+      err.response?.data || err.message
+    );
+    return { success: false, error: err.response?.data || err.message };
   }
 }
 

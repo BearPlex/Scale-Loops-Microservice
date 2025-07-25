@@ -60,20 +60,85 @@ const LOOPS_EMAIL_TRANSACTIONAL_IDS = {
 const CUSTOM_MEDIATORS_EMAILS = {
   "74b49fc0-5d92-4a04-a52a-7f25d4441e9c": {
     email: "hiqbal@bearplex.com",
-    BRIEF_REMINDER: (data) => {
+    // BRIEF_REMINDER_TO_PARTY: (data) => {
+    //   // For ProudFood
+    //   const payload = {
+    //     name: data?.name,
+    //     mediatorName: data?.mediatorName,
+    //     mediatorEmail: data?.mediatorEmail,
+    //     dateAndTime: data?.dateAndTime,
+    //     caseNumber: data?.caseNumber,
+    //     caseTitle: data?.caseTitle,
+    //     onboardingURL: data?.onboardingURL,
+    //   };
+    //   const transcationId = "cmagxubsx0xjcmx7bnf4j5t6v"; // proudfoot
+    //   return { payload, transcationId };
+    // },
+
+    BRIEF_REMINDER_TO_PARTY: (data = {}) => {
+      // For Ari
       const payload = {
-        name: data?.name,
-        mediatorName: data?.mediatorName,
-        mediatorEmail: data?.mediatorEmail,
-        dateAndTime: data?.dateAndTime,
-        caseNumber: data?.caseNumber,
-        caseTitle: data?.caseTitle,
-        onboardingURL: data?.onboardingURL,
+        name: data?.name || "",
+        mediatorName: data?.mediatorName || "",
+        caseTitle: data?.caseTitle || "",
+        caseNumber: data?.caseNumber || " ",
+        dateAndTime: data?.dateAndTime || "",
+        mediatorEmail: data?.mediatorEmail || "",
+        onboardingURL: data?.onboardingURL || "",
       };
-      const transcationId = "cmagxubsx0xjcmx7bnf4j5t6v";
+      const transcationId = "cmdfwy7ip0f4oye0iofz66hvo"; // Ari
+
+      return { payload, transcationId };
+    },
+
+    ONBOARDING_REMINDER_TO_PARTY: (data = {}) => {
+      const payload = {
+        name: data?.name || "",
+        mediatorName: data?.mediatorName || "",
+        caseTitle: data?.caseTitle || "",
+        caseNumber: data?.caseNumber || " ",
+        dateAndTime: data?.dateAndTime || "",
+        onboardingURL: data?.onboardingURL || "",
+        mediatorEmail: data?.mediatorEmail || "",
+      };
+      const transcationId = "cmdfwg2i209ud170i6x13yem6"; // Ari
+
+      return { payload, transcationId };
+    },
+
+    HOURLY_PAYMENT_REMINDER_TO_PARTY: (data = {}) => {
+      const payload = {
+        name: data?.name || "",
+        mediatorName: data?.mediatorName || "",
+        caseTitle: data?.caseTitle || "",
+        caseNumber: data?.caseNumber || " ",
+        mediationDateAndTime: data?.mediationDateAndTime || "",
+        mediatorEmail: data?.mediatorEmail || "",
+        totalDue: data?.totalDue || "",
+        dueDate: data?.dueDate || "",
+        paymentURL: data?.paymentURL || "",
+      };
+      const transcationId = "cmdfwvnqt0dqsy80iuy1s6j28"; // Ari
+
+      return { payload, transcationId };
+    },
+
+    ZOOM_LINK_REMINDER_TO_PARTY: (data = {}) => {
+      const payload = {
+        name: data?.name || "",
+        mediatorName: data?.mediatorName || "",
+        caseTitle: data?.caseTitle || "",
+        caseNumber: data?.caseNumber || " ",
+        mediatorEmail: data?.mediatorEmail || "",
+        zoomURL: data?.zoomURL || "",
+        dateAndTime: data?.dateAndTime || "",
+      };
+      const transcationId = "cmdh6sakg5qjv120ippnvpmym"; // Ari
+
       return { payload, transcationId };
     },
   },
+
   "6aa3e286-9219-4899-96d3-2d34367e7167": {
     email: "qa@bearplex.com",
     BRIEF_REMINDER: (data) => {
@@ -104,6 +169,72 @@ const CUSTOM_MEDIATORS_EMAILS = {
         onboardingURL: data?.onboardingURL,
       };
       const transcationId = "cmagxubsx0xjcmx7bnf4j5t6v";
+      return { payload, transcationId };
+    },
+  },
+
+  "90ee8c86-656f-407b-899d-ae1603de4b31": {
+    email: "asliffman@ajsresolutions.com",
+    BRIEF_REMINDER_TO_PARTY: (data = {}) => {
+      // For Ari
+      const payload = {
+        name: data?.name || "",
+        mediatorName: data?.mediatorName || "",
+        caseTitle: data?.caseTitle || "",
+        caseNumber: data?.caseNumber || " ",
+        dateAndTime: data?.dateAndTime || "",
+        mediatorEmail: data?.mediatorEmail || "",
+        onboardingURL: data?.onboardingURL || "",
+      };
+      const transcationId = "cmdfwy7ip0f4oye0iofz66hvo"; // Ari
+
+      return { payload, transcationId };
+    },
+
+    ONBOARDING_REMINDER_TO_PARTY: (data = {}) => {
+      const payload = {
+        name: data?.name || "",
+        mediatorName: data?.mediatorName || "",
+        caseTitle: data?.caseTitle || "",
+        caseNumber: data?.caseNumber || " ",
+        dateAndTime: data?.dateAndTime || "",
+        onboardingURL: data?.onboardingURL || "",
+        mediatorEmail: data?.mediatorEmail || "",
+      };
+      const transcationId = "cmdfwg2i209ud170i6x13yem6"; // Ari
+
+      return { payload, transcationId };
+    },
+
+    HOURLY_PAYMENT_REMINDER_TO_PARTY: (data = {}) => {
+      const payload = {
+        name: data?.name || "",
+        mediatorName: data?.mediatorName || "",
+        caseTitle: data?.caseTitle || "",
+        caseNumber: data?.caseNumber || " ",
+        mediationDateAndTime: data?.mediationDateAndTime || "",
+        mediatorEmail: data?.mediatorEmail || "",
+        totalDue: data?.totalDue || "",
+        dueDate: data?.dueDate || "",
+        paymentURL: data?.paymentURL || "",
+      };
+      const transcationId = "cmdfwvnqt0dqsy80iuy1s6j28"; // Ari
+
+      return { payload, transcationId };
+    },
+
+    ZOOM_LINK_REMINDER_TO_PARTY: (data = {}) => {
+      const payload = {
+        name: data?.name || "",
+        mediatorName: data?.mediatorName || "",
+        caseTitle: data?.caseTitle || "",
+        caseNumber: data?.caseNumber || " ",
+        mediatorEmail: data?.mediatorEmail || "",
+        zoomURL: data?.zoomURL || "",
+        dateAndTime: data?.dateAndTime || "",
+      };
+      const transcationId = "cmdh6sakg5qjv120ippnvpmym"; // Ari
+
       return { payload, transcationId };
     },
   },

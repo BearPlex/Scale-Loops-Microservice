@@ -106,10 +106,11 @@ const sendPaymentEmail = async (invoice, reminderObj = null) => {
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
       totalDue: formatAmount(convertCentsToDollars(invoice?.amount)),
-      // dueDate:
-      //   remainingDueDays <= 0
-      //     ? moment(invoice.created_at).startOf("day").format("MMMM DD, YYYY")
-      //     : moment(invoice.due_date).startOf("day").format("MMMM DD, YYYY"),
+      dueDate:
+        // remainingDueDays <= 0
+        //   ? moment(invoice.created_at).startOf("day").format("MMMM DD, YYYY")
+        //   :
+        moment(invoice.due_date).startOf("day").format("MMMM DD, YYYY"),
       paymentURL:
         !invoice?.hasOwnProperty("invoice_id") || invoice?.invoice_id === null
           ? invoice?.payment_url
@@ -117,8 +118,11 @@ const sendPaymentEmail = async (invoice, reminderObj = null) => {
               invoice?.invoice_id,
               mediatorData?.user_id
             ),
-      // caseNumber: caseData?.case_number,
+      caseNumber: caseData?.case_number || "",
     };
+
+    // console.log({ baseEmailData });
+    // return;
 
     await sendHourlyInvoiceReminder(
       { ...baseEmailData, email: clientData?.email, case_id: caseData?.id },
@@ -175,6 +179,8 @@ async function hourlyInvoicesReminder() {
 
   try {
     const invoicesReminders = await getHourlyInvoicesReminders();
+    // console.log({ invoicesReminders });
+    // return;
     for (const invoiceReminder of invoicesReminders) {
       const totalReminders = countValidReminders(invoiceReminder?.reminders);
       const todaysReminders = Object.entries(invoiceReminder?.reminders || {})
@@ -256,7 +262,6 @@ async function hourlyInvoicesReminder() {
     );
   }
 }
-
 module.exports = {
   hourlyInvoicesReminder,
 };
