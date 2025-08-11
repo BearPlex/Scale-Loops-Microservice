@@ -408,6 +408,16 @@ function getFullCaseName(caseName = "", additionalCaseNames = []) {
   }`;
 }
 
+const getPrimaryAccessorByRole = (role) => {
+  if (role === "plaintiff" || role === "primary_plaintiff") {
+    return "plaintiff_id";
+  }
+  if (role === "defendant" || role === "primary_defendant") {
+    return "defender_id";
+  }
+  return "";
+};
+
 module.exports = {
   convertCentsToDollars,
   convertDollarToCents,
@@ -427,4 +437,5 @@ module.exports = {
   generateCasesHtml,
   generateICSFileForManual,
   getFullCaseName,
+  getPrimaryAccessorByRole,
 };

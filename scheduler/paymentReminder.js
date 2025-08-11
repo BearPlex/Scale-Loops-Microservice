@@ -7,6 +7,7 @@ const {
   convertToAMPM,
   generateInvoiceUrlFrontend,
   getFullCaseName,
+  getPrimaryAccessorByRole,
 } = require("../utils/functions");
 const {
   fetchEmailRemainders,
@@ -17,122 +18,73 @@ const {
   convertCountingWordToDigit,
   getNextValidReminder,
 } = require("../utils/functions");
+const {
+  casePrimaryAndAdditionalPartiesData,
+} = require("../utils/helpers/caseDetail.helper");
 
-async function getCases(forClient) {
+async function getMediator() {
+  const { data, error } = await supabase
+    .from("mediators")
+    .select("*")
+    .eq("email", "hiqbal@bearplex.com");
+
+  if (error) {
+    return [];
+  }
+  return data ? data : [];
+}
+
+async function getMediatorCases(mediatorId) {
   try {
     const today = moment().utc().startOf("day").format("YYYY-MM-DD");
 
-    const { data: cases, error: casesError } = await supabase
-      .from("cases")
-      .select(
-        `
-        *,
-        onboarding(*),
-        mediator:mediator_id(*),
-        defender_id(*, onboarding(*), payments(*)),
-        plaintiff_id(*, onboarding(*), payments(*))
-        `
-      )
-      .gt("mediation_date", today);
-    // .eq("id", 1188);
+    const filters = [{ column: "mediation_date", value: today, type: "gte" }];
 
-    if (casesError) {
-      console.error(
-        "Error fetching cases in payment reminder cron job:",
-        casesError
-      );
-      return [];
-    }
+    const cases = await casePrimaryAndAdditionalPartiesData(
+      null,
+      mediatorId,
+      filters
+    );
 
     if (!cases?.length) return [];
-
-    const caseIds = cases.map((c) => c?.id);
-
-    const { data: participants, error: participantsError } = await supabase
-      .from("participants")
-      .select("*")
-      .in("case_id", caseIds);
-
-    if (participantsError) {
-      console.error("Error fetching participants:", participantsError);
-    }
-
-    return cases.map((x) => {
-      const clientKey =
-        forClient === "defendant" ? "defender_id" : "plaintiff_id";
-      const clientData = x[clientKey] || {};
-      const filteredPayments =
-        clientData.payments?.filter((p) => p.case_id === x.id) || [];
-
-      const caseParticipants =
-        participants?.filter((p) => p.case_id === x.id) || [];
-
-      return {
-        ...x,
-        payments: filteredPayments,
-        participants: caseParticipants,
-      };
-    });
+    console.log("cases?.length", cases?.length);
+    return cases;
   } catch (err) {
-    console.error("Unexpected error in getCases:", err);
+    console.error("Unexpected error in getMediatorCases:", err);
     return [];
   }
 }
 
-const getClientInfo = async (clientId) => {
-  const { data } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("client_id", clientId)
-    .single();
-  return data;
-};
-
-const clients = {};
-
-const sendPaymentEmail = async (
-  caseData,
-  paymentInfo,
-  reminderArr = null,
-  as
-) => {
+const sendPaymentEmail = async (caseData, partyData, reminderArr = null) => {
   try {
-    if (clients[paymentInfo?.client_id]) {
-    } else {
-      const client = await getClientInfo(paymentInfo?.client_id);
-      clients[client?.client_id] = client;
-    }
+    // console.log("sendPaymentEmail -> paymentInfo", partyData.payment);
+    // console.log("caseData?.mediator_id", caseData?.mediator_id);
+    // console.log("reminderArr", reminderArr);
+    // return;
 
-    const clientData = clients[paymentInfo?.client_id];
     const mediationDate = moment(caseData?.mediation_date).startOf("day");
 
-    const xDaysAfterOnBoarding = moment(
-      caseData?.[as === "defender" ? "defender_id" : "plaintiff_id"]
-        ?.onboarding?.[0]?.created_at
-    )
-      .add(caseData?.mediator?.payment_reminder_days, "day")
+    const xDaysAfterOnBoarding = moment(partyData?.onboarding?.created_at)
+      .add(caseData?.mediator_id?.payment_reminder_days, "day")
       .utc();
 
     const remainingDueDays =
       mediationDate.diff(xDaysAfterOnBoarding, "days") + 1;
 
     const baseEmailData = {
-      name: clientData?.name,
-      mediatorName: `${caseData?.mediator?.first_name} ${caseData?.mediator?.last_name}`,
+      name: partyData?.name,
+      mediatorName: `${caseData?.mediator_id?.first_name} ${caseData?.mediator_id?.last_name}`,
       mediationDateAndTime: `${moment(caseData?.mediation_date).format(
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
       totalDue: formatAmount(
-        paymentInfo?.grand_total && paymentInfo?.grand_total > 0
-          ? paymentInfo?.grand_total
-          : paymentInfo?.amount
+        partyData?.payment?.grand_total && partyData?.payment?.grand_total > 0
+          ? partyData?.payment?.grand_total
+          : partyData?.payment?.amount
       ),
       dueDate:
         remainingDueDays <= 0
-          ? moment(
-              caseData?.[as === "defender" ? "defender_id" : "plaintiff_id"]
-                ?.onboarding?.[0]?.created_at
-            )
+          ? moment(partyData?.onboarding?.created_at)
               .startOf("day")
               .format("MMMM DD, YYYY")
           : moment(xDaysAfterOnBoarding).startOf("day").format("MMMM DD, YYYY"),
@@ -144,31 +96,27 @@ const sendPaymentEmail = async (
       // paymentURL: paymentInfo?.payment_url,
 
       paymentURL:
-        paymentInfo?.invoice_id === null
-          ? paymentInfo?.payment_url
+        partyData?.payment?.invoice_id === null
+          ? partyData?.payment?.payment_url
           : generateInvoiceUrlFrontend(
-              paymentInfo?.invoice_id,
-              caseData?.mediator?.user_id
+              partyData?.payment?.invoice_id,
+              caseData?.mediator_id?.user_id
             ),
-      mediatorEmail: caseData?.mediator?.email,
+      mediatorEmail: caseData?.mediator_id?.email,
     };
 
     await sendPaymentsReminders(
-      { ...baseEmailData, email: clientData?.email, case_id: caseData?.id },
+      { ...baseEmailData, email: partyData?.email, case_id: caseData?.id },
       reminderArr
     );
 
-    const alternateEmails =
-      caseData?.participants?.find(
-        (x) =>
-          x.client_id === clientData.client_id && x.email === clientData.email
-      )?.alternate_emails || [];
+    const alternateEmails = partyData?.alternate_emails || [];
 
     console.log(
       "Case ID ->",
       caseData?.id,
       "Client Email ->",
-      clientData?.email,
+      partyData?.email,
       "->  alternateEmails",
       alternateEmails
     );
@@ -184,10 +132,10 @@ const sendPaymentEmail = async (
     }
 
     if (
-      caseData?.mediator?.email_cc &&
-      Array.isArray(caseData?.mediator?.email_cc)
+      caseData?.mediator_id?.email_cc &&
+      Array.isArray(caseData?.mediator_id?.email_cc)
     ) {
-      for (const ccEmail of caseData?.mediator?.email_cc) {
+      for (const ccEmail of caseData?.mediator_id?.email_cc) {
         await sendPaymentsReminders({
           ...baseEmailData,
           email: ccEmail,
@@ -202,105 +150,145 @@ const sendPaymentEmail = async (
   }
 };
 
+const getAllRecordOfParty = (
+  caseData,
+  partyType,
+  is_additional_party = false,
+  additional_party_id = null
+) => {
+  const primaryData = caseData[partyType];
+  const additionalData = is_additional_party
+    ? primaryData?.additionalParties
+    : [];
+
+  if (
+    additionalData.length > 0 &&
+    is_additional_party === true &&
+    additional_party_id
+  ) {
+    return additionalData?.find((x) => x.id === additional_party_id) || null;
+  }
+
+  delete primaryData?.additionalParties;
+  return primaryData;
+};
+
 async function sendReminders(forClient) {
-  const today = moment().utc().startOf("day").format("YYYY-MM-DD");
-  // const today = moment().startOf("day").format("YYYY-MM-DD");
+  // const today = moment().utc().startOf("day").format("YYYY-MM-DD");
+  const today = moment("2025-08-13").startOf("day").format("YYYY-MM-DD");
+  console.log("`payment-${forClient}`", `payment-${forClient}`);
 
   try {
-    const cases = await getCases(forClient);
-    for (const caseData of cases) {
-      const emailReminders = await fetchEmailRemainders(
-        caseData.id,
-        caseData.mediator_id,
-        today,
-        `payment-${forClient}`
-      );
-      const totalReminders = countValidReminders(emailReminders?.reminders);
-      const todaysReminders = Object.entries(emailReminders?.reminders || {})
-        .filter(
-          ([_, reminder]) =>
-            reminder &&
-            moment(reminder?.date).isSame(today, "day") &&
-            !reminder?.is_sent
-        )
-        .map(([reminderType, reminder]) => ({ reminderType, reminder }));
-      if (!todaysReminders.length) {
-        console.log(
-          `No unsent Payment Reminders for case ${caseData.id} , Date: ${today}`
+    const mediators = await getMediator();
+    for (const mediator of mediators) {
+      const cases = await getMediatorCases(mediator?.user_id);
+      for (const caseData of cases) {
+        const emailReminders = await fetchEmailRemainders(
+          caseData.id,
+          caseData.mediator_id?.user_id,
+          today,
+          `payment-${forClient}`,
+          true
         );
-        continue;
-      }
 
-      const emailPromises = [];
-      const markReminderPromises = [];
-      for (const payment of caseData?.payments || []) {
-        if (payment.status === "paid" || payment.status === "paid_manually") {
-          continue;
-        } else {
-          for (const { reminderType, reminder } of todaysReminders) {
-            try {
-              const nextReminderDate = getNextValidReminder(
-                emailReminders?.reminders || {},
-                reminderType || null
-              )?.date;
-              emailPromises.push(() =>
-                sendPaymentEmail(
-                  caseData,
-                  payment,
-                  [
+        const emailPromises = [];
+        const markReminderPromises = [];
+
+        for (const emailReminder of emailReminders || []) {
+          const totalReminders = countValidReminders(emailReminder?.reminders);
+          const todaysReminders = Object.entries(emailReminder?.reminders || {})
+            .filter(
+              ([_, reminder]) =>
+                reminder &&
+                moment(reminder?.date).isSame(today, "day") &&
+                !reminder?.is_sent
+            )
+            .map(([reminderType, reminder]) => ({ reminderType, reminder }));
+
+          if (!todaysReminders.length) {
+            console.log(
+              `No unsent Payment Reminders for case ${caseData.id} , Date: ${today}`
+            );
+            continue;
+          }
+
+          const additionalParty = emailReminder.additional_party || null;
+
+          const partyData = getAllRecordOfParty(
+            caseData,
+            forClient === "additional-party" ? additionalParty.role : forClient,
+            additionalParty?.id ? true : false,
+            additionalParty?.id
+          );
+
+          if (
+            partyData?.payment.status === "paid" ||
+            partyData?.payment.status === "paid_manually"
+          ) {
+            continue;
+          } else {
+            for (const { reminderType, reminder } of todaysReminders) {
+              try {
+                const nextReminderDate = getNextValidReminder(
+                  emailReminder?.reminders || {},
+                  reminderType || null
+                )?.date;
+                emailPromises.push(() =>
+                  sendPaymentEmail(caseData, partyData, [
                     {
-                      [forClient === "defendant"
-                        ? "defender_id"
-                        : "plaintiff_id"]:
-                        forClient === "defendant"
-                          ? caseData.defender_id?.client_id
-                          : caseData.plaintiff_id?.client_id,
+                      [`${getPrimaryAccessorByRole(partyData.role)}`]:
+                        forClient !== "additional-party"
+                          ? partyData.client_id
+                          : partyData.primary_party_id,
+                      additional_client_id:
+                        forClient === "additional-party"
+                          ? partyData.client_id
+                          : null,
                       case_id: caseData.id,
                       type: "payment",
-                      mediator: caseData?.mediator?.mediator_id,
+                      mediator: caseData?.mediator_id?.mediator_id,
                       event: `Payment Reminder ${convertCountingWordToDigit(
                         reminderType
                       )}/${totalReminders}`,
                       amount:
-                        payment?.grand_total && payment?.grand_total > 0
-                          ? payment?.grand_total
-                          : payment?.amount,
-                      // created_at: moment(reminder?.date),
+                        partyData?.payment?.grand_total &&
+                        partyData?.payment?.grand_total > 0
+                          ? partyData?.payment?.grand_total
+                          : partyData?.payment?.amount,
                       next_reminder:
                         nextReminderDate !== null &&
                         nextReminderDate !== undefined
                           ? moment(nextReminderDate).format("MMMM D,YYYY")
                           : null,
                     },
-                  ],
-                  forClient === "defendant" ? "defender" : "plaintiff"
-                )
-              );
-              markReminderPromises.push(() =>
-                markReminderAsSent(
-                  emailReminders.id,
-                  reminderType,
-                  `payment-${forClient}`
-                )
-              );
-            } catch (error) {
-              console.error(
-                `Error processing Payment Reminder ${reminderType} for case ${caseData.id}:`,
-                error
-              );
+                  ])
+                );
+                markReminderPromises.push(() =>
+                  markReminderAsSent(
+                    emailReminder.id,
+                    reminderType,
+                    `payment-${forClient}`
+                  )
+                );
+              } catch (error) {
+                console.error(
+                  `Error processing Payment Reminder ${reminderType} for case ${caseData.id}:`,
+                  error
+                );
+              }
             }
           }
         }
+
+        await Promise.all(emailPromises.map((fn) => fn()));
+        // await Promise.all(markReminderPromises.map((fn) => fn()));
+
+        console.log(
+          `Payment Reminders of ${`payment-${forClient}`} for case ${
+            caseData.id
+          } have been processed. Date: ${today}`
+        );
       }
-
-      await Promise.all(emailPromises.map((fn) => fn()));
-      await Promise.all(markReminderPromises.map((fn) => fn()));
-
-      console.log(
-        `Payment Reminders of ${`payment-${forClient}`} for case ${
-          caseData.id
-        } have been processed. Date: ${today}`
-      );
     }
   } catch (err) {
     console.log(
@@ -310,18 +298,27 @@ async function sendReminders(forClient) {
   }
 }
 
-async function defendentReminders() {
-  const param1 = "defendant";
-  sendReminders(param1);
-}
+// async function defendentReminders() {
+//   const param1 = "defendant";
+//   sendReminders(param1);
+// }
 
 async function plaintiffReminders() {
   const param1 = "plaintiff";
   sendReminders(param1);
 }
 
+// async function additionalPartyPaymentReminders() {
+//   const param1 = "additional-party";
+//   sendReminders(param1);
+// }
+
+// additionalPartyPaymentReminders();
+plaintiffReminders();
+
 module.exports = {
   sendReminders,
-  defendentReminders,
-  plaintiffReminders,
+  // defendentReminders,
+  // plaintiffReminders,
+  // additionalPartyPaymentReminders,
 };

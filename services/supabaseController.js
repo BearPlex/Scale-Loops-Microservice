@@ -4,6 +4,10 @@ const {
   LOOPS_EMAIL_TRANSACTIONAL_IDS,
   CUSTOM_MEDIATORS_EMAILS,
 } = require("../constants/emailConstant");
+const {
+  ADDITIONAL_PARTICIPANTS_TABLE,
+  PARTICIPANTS_TABLE,
+} = require("../constants/supabase.constant");
 
 const url = "https://app.loops.so/api/v1/transactional";
 
@@ -48,12 +52,13 @@ async function fetchEmailRemainders(
   case_id,
   mediator_id,
   date = null,
-  type = "onBoarding"
+  type = "onBoarding",
+  isArrayResponse = false
 ) {
   try {
     let query = supabase
       .from("email_reminders")
-      .select("*")
+      .select("*,additional_party:additional_party_id(*,client:client_id(*))")
       .eq("case_id", case_id)
       .eq("mediator_id", mediator_id);
 
@@ -67,9 +72,21 @@ async function fetchEmailRemainders(
       );
     }
 
-    const { data: reminders, error } = await query.single();
+    let reminders, queryError;
 
-    if (error) return null;
+    if (type === "payment-additional-party" || isArrayResponse) {
+      const { data, error } = await query;
+
+      reminders = data;
+      queryError = error;
+    } else {
+      const { data, error } = await query.single();
+
+      reminders = data;
+      queryError = error;
+    }
+
+    if (queryError) return null;
 
     return reminders;
   } catch (err) {
@@ -164,6 +181,31 @@ async function findCaseById(case_id, columns = "*", filters = []) {
     if (fetchError) throw fetchError;
 
     return caseObj;
+  } catch (err) {
+    console.error("Error fetching case:", err);
+    return { error: err.message || "Error fetching case" };
+  }
+}
+
+async function findCasesByMediatorId(mediator_id, columns = "*", filters = []) {
+  try {
+    let query = supabase
+      .from("cases")
+      .select(columns)
+      .eq("mediator_id", mediator_id);
+
+    filters.forEach((filter) => {
+      if (filter?.type === "gte") {
+        query = query.gte(filter.column, filter.value);
+      } else {
+        query = query.eq(filter.column, filter.value);
+      }
+    });
+    const { data, error: fetchError } = await query;
+
+    if (fetchError) throw fetchError;
+
+    return data;
   } catch (err) {
     console.error("Error fetching case:", err);
     return { error: err.message || "Error fetching case" };
@@ -725,6 +767,38 @@ async function sendZoomEmailReminderForMediators(payload) {
   }
 }
 
+async function findParticipants(caseId, selectQuery = "*") {
+  try {
+    const { data, error } = await supabase
+      .from(PARTICIPANTS_TABLE)
+      .select(selectQuery)
+      .eq("case_id", caseId);
+
+    if (error) throw error;
+
+    return data;
+  } catch (err) {
+    console.error("Error fetching participants:", err);
+    throw err;
+  }
+}
+
+async function findAdditionalParticipants(caseId, selectQuery = "*") {
+  try {
+    const { data, error } = await supabase
+      .from(ADDITIONAL_PARTICIPANTS_TABLE)
+      .select(selectQuery)
+      .eq("case_id", caseId);
+
+    if (error) throw error;
+
+    return data;
+  } catch (err) {
+    console.error("Error fetching additional participants:", err);
+    throw err;
+  }
+}
+
 module.exports = {
   loopsHeader: headers,
   loopsUrl: url,
@@ -740,4 +814,8 @@ module.exports = {
   sendZoomEmailReminder,
   sendZoomEmailReminderForMediators,
   getParticipants,
+  findCaseById,
+  findAdditionalParticipants,
+  findParticipants,
+  findCasesByMediatorId,
 };

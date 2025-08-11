@@ -11,12 +11,16 @@ const {
   convertCountingWordToDigit,
   getNextValidReminder,
   getFullCaseName,
+  getPrimaryAccessorByRole,
 } = require("../utils/functions");
 const {
   fetchEmailRemainders,
   markReminderAsSent,
 } = require("../services/supabaseController");
 const { calculateBriefDays } = require("../utils/functions");
+const {
+  casePrimaryAndAdditionalPartiesData,
+} = require("../utils/helpers/caseDetail.helper");
 
 const slotsNames = {
   morning: "Morning",
@@ -39,83 +43,51 @@ async function getMediator() {
 
 async function getMediatorCases(mediatorId, date) {
   try {
-    const { data: cases, error: casesError } = await supabase
-      .from("cases")
-      .select("*, onboarding(*)")
-      .gt("mediation_date", date)
-      .eq("mediator_id", mediatorId);
-    // .eq("id", 1188);
+    const filters = [{ column: "mediation_date", value: date }];
 
-    if (casesError) {
-      console.error("Error fetching cases:", casesError);
-      return [];
-    }
+    const cases = await casePrimaryAndAdditionalPartiesData(
+      null,
+      mediatorId,
+      filters
+    );
 
     if (!cases?.length) return [];
 
-    const caseIds = cases.map((c) => c.id);
-    const { data: participants, error: participantsError } = await supabase
-      .from("participants")
-      .select("*")
-      .in("case_id", caseIds);
+    const isBriefDone = (party) =>
+      party?.onboarding?.brief_info?.length > 0 ||
+      party?.onboarding?.is_brief_submit_manually === true;
 
-    if (participantsError) {
-      console.error("Error fetching participants:", participantsError);
-    }
+    const isOnboardingDone = (party) => party?.onboarding?.completed === true;
 
-    return cases.map((obj) => {
-      const caseParticipants =
-        participants?.filter((p) => p.case_id === obj.id) || [];
-
-      const hasPlaintiffOnboarding = obj?.onboarding?.some(
-        ({ client_id, completed }) =>
-          client_id === obj?.plaintiff_id && completed === true
-      );
-      const hasPlaintiffBrief = obj?.onboarding?.some(
-        ({ client_id, brief_info, is_brief_submit_manually }) =>
-          client_id === obj?.plaintiff_id &&
-          (brief_info?.length > 0 || is_brief_submit_manually === true)
-      );
-
-      const hasDefendantOnboarding = obj?.onboarding?.some(
-        ({ client_id, completed }) =>
-          client_id === obj?.defender_id && completed === true
-      );
-      const hasDefendantBrief = obj?.onboarding?.some(
-        ({ client_id, brief_info, is_brief_submit_manually }) =>
-          client_id === obj?.defender_id &&
-          (brief_info?.length > 0 || is_brief_submit_manually === true)
-      );
-
-      return {
-        ...obj,
-        participants: caseParticipants,
-        plaintiffStatus: {
-          onBoarding: hasPlaintiffOnboarding,
-          brief: hasPlaintiffBrief,
-        },
-        defendantStatus: {
-          onBoarding: hasDefendantOnboarding,
-          brief: hasDefendantBrief,
-        },
-      };
-    });
+    return Array.isArray(cases) && cases.length > 0
+      ? cases.map((caseData) => ({
+          ...caseData,
+          isAllPlaintiffBriefDone:
+            isBriefDone(caseData?.plaintiff) &&
+            (Array.isArray(caseData?.plaintiff?.additionalParties)
+              ? caseData.plaintiff.additionalParties.every(isBriefDone)
+              : true),
+          isAllDefendantBriefDone:
+            isBriefDone(caseData?.defendant) &&
+            (Array.isArray(caseData?.defendant?.additionalParties)
+              ? caseData.defendant.additionalParties.every(isBriefDone)
+              : true),
+          isAllPlaintiffOnboardingDone:
+            isOnboardingDone(caseData?.plaintiff) &&
+            (Array.isArray(caseData?.plaintiff?.additionalParties)
+              ? caseData.plaintiff.additionalParties.every(isOnboardingDone)
+              : true),
+          isAllDefendantOnboardingDone:
+            isOnboardingDone(caseData?.defendant) &&
+            (Array.isArray(caseData?.defendant?.additionalParties)
+              ? caseData.defendant.additionalParties.every(isOnboardingDone)
+              : true),
+        }))
+      : [];
   } catch (err) {
     console.error("Unexpected error in getMediatorCases:", err);
     return [];
   }
-}
-
-async function getClientInformation(client_id) {
-  const { data, error } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("client_id", client_id)
-    .single();
-
-  if (error) return null;
-
-  return data;
 }
 
 async function onBoardingEmail(mediator, caseData, client) {
@@ -130,7 +102,7 @@ async function onBoardingEmail(mediator, caseData, client) {
       email: client.email,
       name: client.name,
       mediatorName: `${mediator?.first_name} ${mediator?.last_name}`,
-      onboardingURL: `${process.env.FRONT_END_BASE_URL}/onboarding-form/${caseData?.id}/${client?.client_id}`,
+      onboardingURL: `${process.env.FRONT_END_BASE_URL}/onboarding-form/${caseData?.id}/${client?.uuid}`,
       dateAndTime: `${moment(caseData?.mediation_date).format(
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
@@ -149,10 +121,7 @@ async function onBoardingEmail(mediator, caseData, client) {
       case_id: caseData?.id,
     });
 
-    const alternateEmails =
-      caseData?.participants?.find(
-        (x) => x.client_id === client?.client_id && x.email === client?.email
-      )?.alternate_emails || [];
+    const alternateEmails = client.alternate_emails || [];
 
     console.log(
       "Case ID ->",
@@ -196,7 +165,7 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
     const baseData = {
       name: client.name,
       mediatorName: `${mediator?.first_name} ${mediator?.last_name}`,
-      onboardingURL: `${process.env.FRONT_END_BASE_URL}/onboarding-form/${caseData?.id}/${client?.client_id}`,
+      onboardingURL: `${process.env.FRONT_END_BASE_URL}/onboarding-form/${caseData?.id}/${client?.uuid}`,
       dateAndTime: `${moment(caseData?.mediation_date).format(
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
@@ -214,10 +183,7 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       emailLog
     );
 
-    const alternateEmails =
-      caseData?.participants?.find(
-        (x) => x.client_id === client?.client_id && x.email === client?.email
-      )?.alternate_emails || [];
+    const alternateEmails = client?.alternate_emails || [];
 
     console.log(
       "Case ID ->",
@@ -248,14 +214,18 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
 
 async function sendBriefReminders() {
   const today = moment().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-07-02").startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-08-19").startOf("day").format("YYYY-MM-DD");
 
   try {
     const mediators = await getMediator();
     for (const mediator of mediators) {
       const mediatorCases = await getMediatorCases(mediator?.user_id, today);
+
       for (const caseData of mediatorCases) {
-        if (caseData.plaintiffStatus.brief && caseData.defendantStatus.brief) {
+        if (
+          caseData.isAllPlaintiffBriefDone &&
+          caseData.isAllDefendantBriefDone
+        ) {
           console.log(
             "Skipping caseData: Brief Completed, Case Id:",
             caseData?.id,
@@ -288,16 +258,7 @@ async function sendBriefReminders() {
           continue;
         }
 
-        const [plaintiffData, defendantData] = await Promise.all([
-          !caseData.plaintiffStatus.onBoarding ||
-          !caseData.plaintiffStatus.brief
-            ? getClientInformation(caseData.plaintiff_id)
-            : null,
-          !caseData.defendantStatus.onBoarding ||
-          !caseData.defendantStatus.brief
-            ? getClientInformation(caseData.defender_id)
-            : null,
-        ]);
+        const { plaintiff: plaintiffData, defendant: defendantData } = caseData;
 
         const emailPromises = [];
         const markReminderPromises = [];
@@ -309,55 +270,92 @@ async function sendBriefReminders() {
               reminderType || null
             )?.date;
 
-            if (
-              plaintiffData &&
-              (!caseData.plaintiffStatus.onBoarding ||
-                !caseData.plaintiffStatus.brief)
-            ) {
-              emailPromises.push(() =>
-                !caseData.plaintiffStatus.onBoarding
-                  ? onBoardingEmail(mediator, caseData, plaintiffData)
-                  : formatAndSendEmail(mediator, caseData, plaintiffData, {
-                      plaintiff_id: caseData.plaintiff_id,
-                      case_id: caseData.id,
-                      type: "brief",
-                      mediator: mediator.mediator_id,
-                      event: `Brief Reminder ${convertCountingWordToDigit(
-                        reminderType
-                      )}/${totalReminders}`,
-                      next_reminder:
-                        nextReminderDate !== null &&
-                        nextReminderDate !== undefined
-                          ? moment(nextReminderDate).format("MMMM D,YYYY")
-                          : null,
-                    })
-              );
-            }
+            const email_number = convertCountingWordToDigit(reminderType);
+            const eventLabel = `Brief Reminder ${email_number}/${totalReminders}`;
+            const next_reminder = nextReminderDate
+              ? moment(nextReminderDate).format("MMMM D, YYYY")
+              : null;
 
-            if (
-              defendantData &&
-              (!caseData.defendantStatus.onBoarding ||
-                !caseData.defendantStatus.brief)
-            ) {
-              emailPromises.push(() =>
-                !caseData.defendantStatus.onBoarding
-                  ? onBoardingEmail(mediator, caseData, defendantData)
-                  : formatAndSendEmail(mediator, caseData, defendantData, {
-                      defender_id: caseData.defender_id,
-                      case_id: caseData.id,
-                      type: "brief",
-                      mediator: mediator.mediator_id,
-                      event: `Brief Reminder ${convertCountingWordToDigit(
-                        reminderType
-                      )}/${totalReminders}`,
-                      next_reminder:
-                        nextReminderDate !== null &&
-                        nextReminderDate !== undefined
-                          ? moment(nextReminderDate).format("MMMM D,YYYY")
-                          : null,
+            const baseBriefEmailLogPayload = {
+              type: "brief",
+              case_id: caseData.id,
+              mediator: mediator.mediator_id,
+              event: eventLabel,
+              email_number,
+              next_reminder,
+            };
+
+            const handleRole = ({ role, roleData }) => {
+              if (!roleData) return;
+
+              const primaryKey = getPrimaryAccessorByRole(role);
+
+              const isOnboardingComplete =
+                roleData?.onboarding?.completed === true;
+              const isBriefDone =
+                roleData?.onboarding?.brief_info?.length > 0 ||
+                roleData?.onboarding?.is_brief_submit_manually === true;
+
+              if (!isOnboardingComplete && !isBriefDone) {
+                emailPromises.push(() =>
+                  onBoardingEmail(mediator, caseData, roleData)
+                );
+              }
+
+              if (isOnboardingComplete && !isBriefDone) {
+                emailPromises.push(() =>
+                  formatAndSendEmail(mediator, caseData, roleData, {
+                    ...baseBriefEmailLogPayload,
+                    [primaryKey]: roleData.client_id,
+                    additional_client_id: null,
+                  })
+                );
+              }
+
+              for (const party of roleData?.additionalParties || []) {
+                const isPartyOnboardingComplete =
+                  party?.onboarding?.completed === true;
+
+                const isPartyBriefDone =
+                  party?.onboarding?.brief_info?.length > 0 ||
+                  party?.onboarding?.is_brief_submit_manually === true;
+
+                if (!isPartyOnboardingComplete && !isPartyBriefDone) {
+                  emailPromises.push(() =>
+                    onBoardingEmail(mediator, caseData, {
+                      ...party,
+                      uuid: party?.client?.uuid,
                     })
-              );
-            }
+                  );
+                  continue;
+                }
+
+                if (isPartyOnboardingComplete && !isPartyBriefDone) {
+                  emailPromises.push(() =>
+                    formatAndSendEmail(
+                      mediator,
+                      caseData,
+                      { ...party, uuid: party?.client?.uuid },
+                      {
+                        ...baseBriefEmailLogPayload,
+                        [primaryKey]: party.primary_party_id,
+                        additional_client_id: party.client_id,
+                      }
+                    )
+                  );
+                }
+              }
+            };
+
+            handleRole({
+              role: "plaintiff",
+              roleData: plaintiffData,
+            });
+
+            handleRole({
+              role: "defendant",
+              roleData: defendantData,
+            });
 
             markReminderPromises.push(() =>
               markReminderAsSent(emailReminders.id, reminderType, "brief")
@@ -384,6 +382,8 @@ async function sendBriefReminders() {
     console.error(`Error sending Brief Reminders. Date: ${today}`, error);
   }
 }
+
+// sendBriefReminders();
 
 module.exports = {
   sendBriefReminders,
