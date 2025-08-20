@@ -197,6 +197,9 @@ async function findCasesByMediatorId(mediator_id, columns = "*", filters = []) {
     filters.forEach((filter) => {
       if (filter?.type === "gte") {
         query = query.gte(filter.column, filter.value);
+      }
+      if (filter?.type === "neq") {
+        query = query.neq(filter.column, filter.value);
       } else {
         query = query.eq(filter.column, filter.value);
       }
@@ -694,8 +697,8 @@ async function sendZoomEmailReminder(payload, emailLog = null) {
       attachments: [
         {
           filename: "zoom-invite.ics",
-          contentType: "text/calendar",
-          data: calenderBlob,
+          contentType: "text/calendar; method=REQUEST; charset=UTF-8",
+          data: Buffer.from(calenderBlob, "utf8").toString("base64"),
         },
       ],
     };

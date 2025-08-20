@@ -5,6 +5,7 @@ const {
 const {
   defendentReminders,
   plaintiffReminders,
+  additionalPartyPaymentReminders,
 } = require("../scheduler/paymentReminder");
 const { sendBriefReminders } = require("../scheduler/briefReminder");
 const {
@@ -20,20 +21,23 @@ const { sendZoomReminders } = require("../scheduler/zoomReminder");
 async function runAllPaymentReminders() {
   await defendentReminders();
   await plaintiffReminders();
+  await additionalPartyPaymentReminders();
 }
 
 const jobs = [
   // To Parties Only
-  // { name: "onboarding-reminder", fn: sendOnboardingReminders },
-  // { name: "brief-reminder", fn: sendBriefReminders },
-
-
-  // { name: "zoom-reminder", fn: sendZoomReminders },
-
-  // { name: "payment-reminder", fn: runAllPaymentReminders },
-  
-  // { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder },
-  
+  // { name: "onboarding-reminder", fn: sendOnboardingReminders }, // Done Multi party
+  // { name: "brief-reminder", fn: sendBriefReminders }, // Done Multi party
+  // { name: "payment-reminder", fn: runAllPaymentReminders }, // Done Multi party
+  //
+  //
+  // { name: "zoom-reminder", fn: sendZoomReminders },  // Done Multi party
+  //
+  //
+  // { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder }, // Done Multi party
+  //
+  //
+  //
   // All Mediator only
   // { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
   // ODR Mediators Only

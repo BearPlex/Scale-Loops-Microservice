@@ -344,41 +344,50 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
-function generateICSFileForManual(caseDetail, mediatorDetails) {
-  const [hours, minutes] = caseDetail?.case_schedule_time?.split(":");
-  const title = getFullCaseName(
-    caseDetail?.case_name,
-    caseDetail?.additional_case_names
-  );
-  const url = caseDetail?.zoom_link;
-  const location = url;
-  const description = `Zoom Meeting Link: ${url}`;
-  const startDateTime = `${caseDetail?.mediation_date} ${hours}:${minutes}`;
-  const organizerName =
-    mediatorDetails?.first_name + " " + mediatorDetails?.last_name;
-  const organizerEmail = mediatorDetails?.email;
+function generateICSFileForManual(caseData, mediator) {
+  // parse time using case schedule + mediator timezone
+  const [hours, minutes] = (caseData?.case_schedule_time || "00:00").split(":");
+  const startDateTime = `${caseData?.mediation_date} ${hours}:${minutes}`;
 
-  // Convert start and end times to UTC format
+  const title =
+    caseData?.title || caseData?.case_name || "Zoom Meeting - ScaleMediation";
+
+  const url = caseData?.zoom_link || "";
+  const location = url || "Zoom";
+  const description = `Zoom meeting scheduled via ScaleMediation.\nJoin Zoom: ${url}`;
+
+  const organizerName =
+    mediator?.first_name && mediator?.last_name
+      ? `${mediator.first_name} ${mediator.last_name}`
+      : mediator?.name || "Mediator";
+  const organizerEmail = mediator?.email || "no-reply@scalemediation.com";
+
+  // calculate UTC start & end times
   const start =
     moment
-      .tz(startDateTime, mediatorDetails?.timezone)
+      .tz(startDateTime, mediator?.timezone || "UTC")
       .utc()
-      .format("YYYYMMDDTHHmm00") + "Z";
+      .format("YYYYMMDDTHHmmss") + "Z";
+
   const end =
     moment
-      .tz(startDateTime, mediatorDetails?.timezone)
-      .add(caseDetail?.slot_type === "fullday" ? 6 : 3, "hours")
+      .tz(startDateTime, mediator?.timezone || "UTC")
+      .add(caseData?.slot_type === "fullday" ? 6 : 3, "hours")
       .utc()
-      .format("YYYYMMDDTHHmm00") + "Z";
+      .format("YYYYMMDDTHHmmss") + "Z";
 
-  // Create ICS file content
+  const uid = `${caseData?.id || Date.now()}@scalemediation.com`;
+
+  // final ICS string
   const icsFileContent = `
 BEGIN:VCALENDAR
+PRODID:-//scalemediation.com//EN
 VERSION:2.0
 CALSCALE:GREGORIAN
-METHOD:PUBLISH
+METHOD:REQUEST
 BEGIN:VEVENT
-UID:${Date.now()}@yourdomain.com
+UID:${uid}
+DTSTAMP:${moment.utc().format("YYYYMMDDTHHmmss")}Z
 SUMMARY:${title}
 DESCRIPTION:${description}
 LOCATION:${location}
@@ -386,9 +395,10 @@ URL:${url}
 DTSTART:${start}
 DTEND:${end}
 STATUS:CONFIRMED
-ATTACH;FMTTYPE=application/ics:${url}
-CONFERENCE;FEATURE=ZOOM;LABEL=Join Zoom Meeting:${url}
+SEQUENCE:0
+TRANSP:OPAQUE
 ORGANIZER;CN="${organizerName}":MAILTO:${organizerEmail}
+CONFERENCE;FEATURE=ZOOM;LABEL=Join Zoom Meeting:${url}
 END:VEVENT
 END:VCALENDAR
   `.trim();
@@ -418,6 +428,10 @@ const getPrimaryAccessorByRole = (role) => {
   return "";
 };
 
+function delay(ms = 300) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 module.exports = {
   convertCentsToDollars,
   convertDollarToCents,
@@ -438,4 +452,5 @@ module.exports = {
   generateICSFileForManual,
   getFullCaseName,
   getPrimaryAccessorByRole,
+  delay,
 };

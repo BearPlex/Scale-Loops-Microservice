@@ -8,6 +8,7 @@ const {
   generateInvoiceUrlFrontend,
   getFullCaseName,
   getPrimaryAccessorByRole,
+  delay,
 } = require("../utils/functions");
 const {
   fetchEmailRemainders,
@@ -23,10 +24,8 @@ const {
 } = require("../utils/helpers/caseDetail.helper");
 
 async function getMediator() {
-  const { data, error } = await supabase
-    .from("mediators")
-    .select("*")
-    .eq("email", "hiqbal@bearplex.com");
+  const { data, error } = await supabase.from("mediators").select("*");
+  // .eq("email", "hiqbal@bearplex.com");
 
   if (error) {
     return [];
@@ -47,7 +46,6 @@ async function getMediatorCases(mediatorId) {
     );
 
     if (!cases?.length) return [];
-    console.log("cases?.length", cases?.length);
     return cases;
   } catch (err) {
     console.error("Unexpected error in getMediatorCases:", err);
@@ -174,8 +172,8 @@ const getAllRecordOfParty = (
 };
 
 async function sendReminders(forClient) {
-  // const today = moment().utc().startOf("day").format("YYYY-MM-DD");
-  const today = moment("2025-08-13").startOf("day").format("YYYY-MM-DD");
+  const today = moment().utc().startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-08-13").startOf("day").format("YYYY-MM-DD");
   console.log("`payment-${forClient}`", `payment-${forClient}`);
 
   try {
@@ -280,8 +278,17 @@ async function sendReminders(forClient) {
           }
         }
 
-        await Promise.all(emailPromises.map((fn) => fn()));
-        // await Promise.all(markReminderPromises.map((fn) => fn()));
+        // await Promise.all(emailPromises.map((fn) => fn()));
+        for (const fn of emailPromises) {
+          try {
+            await fn();
+            await delay(500);
+          } catch (err) {
+            console.error("Error sending one email:", err);
+          }
+        }
+
+        await Promise.all(markReminderPromises.map((fn) => fn()));
 
         console.log(
           `Payment Reminders of ${`payment-${forClient}`} for case ${
@@ -298,27 +305,24 @@ async function sendReminders(forClient) {
   }
 }
 
-// async function defendentReminders() {
-//   const param1 = "defendant";
-//   sendReminders(param1);
-// }
+async function defendentReminders() {
+  const param1 = "defendant";
+  sendReminders(param1);
+}
 
 async function plaintiffReminders() {
   const param1 = "plaintiff";
   sendReminders(param1);
 }
 
-// async function additionalPartyPaymentReminders() {
-//   const param1 = "additional-party";
-//   sendReminders(param1);
-// }
-
-// additionalPartyPaymentReminders();
-plaintiffReminders();
+async function additionalPartyPaymentReminders() {
+  const param1 = "additional-party";
+  sendReminders(param1);
+}
 
 module.exports = {
   sendReminders,
-  // defendentReminders,
-  // plaintiffReminders,
-  // additionalPartyPaymentReminders,
+  defendentReminders,
+  plaintiffReminders,
+  additionalPartyPaymentReminders,
 };
