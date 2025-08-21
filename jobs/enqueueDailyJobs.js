@@ -26,22 +26,22 @@ async function runAllPaymentReminders() {
 
 const jobs = [
   // To Parties Only
-  // { name: "onboarding-reminder", fn: sendOnboardingReminders }, // Done Multi party
-  // { name: "brief-reminder", fn: sendBriefReminders }, // Done Multi party
-  // { name: "payment-reminder", fn: runAllPaymentReminders }, // Done Multi party
+  { name: "onboarding-reminder", fn: sendOnboardingReminders }, // Done Multi party
+  { name: "brief-reminder", fn: sendBriefReminders }, // Done Multi party
+  { name: "payment-reminder", fn: runAllPaymentReminders }, // Done Multi party
   //
   //
-  // { name: "zoom-reminder", fn: sendZoomReminders },  // Done Multi party
+  { name: "zoom-reminder", fn: sendZoomReminders }, // Done Multi party
   //
   //
-  // { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder }, // Done Multi party
+  { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder }, // Done Multi party
   //
   //
   //
   // All Mediator only
-  // { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
+  { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
   // ODR Mediators Only
-  // { name: "key-documents-reminder", fn: sendKeyDocumentsReminders },
+  { name: "key-documents-reminder", fn: sendKeyDocumentsReminders },
 ];
 
 async function runJobsSequentially(jobList) {
