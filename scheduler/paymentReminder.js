@@ -25,7 +25,7 @@ const {
 
 async function getMediator() {
   const { data, error } = await supabase.from("mediators").select("*");
-  // .eq("email", "hiqbal@bearplex.com");
+  // .eq("email", "eric@resolvewannon.com");
 
   if (error) {
     return [];
@@ -33,10 +33,8 @@ async function getMediator() {
   return data ? data : [];
 }
 
-async function getMediatorCases(mediatorId) {
+async function getMediatorCases(mediatorId, today) {
   try {
-    const today = moment().utc().startOf("day").format("YYYY-MM-DD");
-
     const filters = [{ column: "mediation_date", value: today, type: "gte" }];
 
     const cases = await casePrimaryAndAdditionalPartiesData(
@@ -173,13 +171,20 @@ const getAllRecordOfParty = (
 
 async function sendReminders(forClient) {
   const today = moment().utc().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-08-13").startOf("day").format("YYYY-MM-DD");
+  // const today = "2025-08-21";
+
   console.log("`payment-${forClient}`", `payment-${forClient}`);
 
   try {
     const mediators = await getMediator();
     for (const mediator of mediators) {
-      const cases = await getMediatorCases(mediator?.user_id);
+      const cases = await getMediatorCases(mediator?.user_id, today);
+      // console.log(
+      //   "Mediator Cases -> mnediator Name",
+      //   mediator?.first_name,
+      //   "-> case_id: ",
+      //   cases?.map((x) => x.id)
+      // );
       for (const caseData of cases) {
         const emailReminders = await fetchEmailRemainders(
           caseData.id,
@@ -258,6 +263,7 @@ async function sendReminders(forClient) {
                         nextReminderDate !== undefined
                           ? moment(nextReminderDate).format("MMMM D,YYYY")
                           : null,
+                      // created_at: "2025-08-21 18:01:24.099244+00",
                     },
                   ])
                 );
@@ -291,9 +297,9 @@ async function sendReminders(forClient) {
         await Promise.all(markReminderPromises.map((fn) => fn()));
 
         console.log(
-          `Payment Reminders of ${`payment-${forClient}`} for case ${
+          `Payment Reminders of ${`payment-${forClient}`} -> case_id (${
             caseData.id
-          } have been processed. Date: ${today}`
+          }) have been processed. Date: ${today}`
         );
       }
     }
@@ -319,6 +325,9 @@ async function additionalPartyPaymentReminders() {
   const param1 = "additional-party";
   sendReminders(param1);
 }
+
+// plaintiffReminders();
+// defendentReminders();
 
 module.exports = {
   sendReminders,

@@ -262,6 +262,7 @@ async function hourlyInvoicesReminder() {
     );
   }
 }
+
 module.exports = {
   hourlyInvoicesReminder,
 };

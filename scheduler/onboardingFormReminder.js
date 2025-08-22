@@ -18,15 +18,9 @@ const {
   casePrimaryAndAdditionalPartiesData,
 } = require("../utils/helpers/caseDetail.helper");
 
-// const slotsNames = {
-//   morning: "Morning",
-//   afternoon: "Afternoon",
-//   fullday: "Full Day",
-// };
-
 async function getMediator() {
   const { data, error } = await supabase.from("mediators").select("*");
-  // .eq("email", "hiqbal@bearplex.com");
+  // .neq("email", "eric@resolvewannon.com");
 
   if (error) {
     return [];
@@ -36,7 +30,10 @@ async function getMediator() {
 
 async function getMediatorCases(mediatorId, date) {
   try {
-    const filters = [{ column: "mediation_date", value: date }];
+    const filters = [
+      { column: "mediation_date", value: date, type: "gte" },
+      // { column: "id", value: 622 },
+    ];
 
     const cases = await casePrimaryAndAdditionalPartiesData(
       null,
@@ -129,7 +126,6 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       }
     }
 
-    // console.log("mediator?.email_cc", mediator?.email_cc);
     if (mediator?.email_cc && Array.isArray(mediator.email_cc)) {
       for (const ccEmail of mediator.email_cc) {
         await sendOnboardingEmailReminder({
@@ -157,7 +153,8 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
 
 async function sendOnboardingReminders() {
   const today = moment().utc().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-05-12").startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-08-21").startOf("day").format("YYYY-MM-DD");
+
   try {
     const mediators = await getMediator();
     for (const mediator of mediators) {
@@ -178,6 +175,8 @@ async function sendOnboardingReminders() {
 async function processMediatorCases(mediator, today) {
   try {
     const mediatorCases = await getMediatorCases(mediator?.user_id, today);
+    // console.log("mediatorCases", mediatorCases);
+    // return;
     for (const caseData of mediatorCases) {
       try {
         if (
@@ -290,6 +289,7 @@ async function sendAndMarkReminders(
           event: eventLabel,
           email_number,
           next_reminder,
+          // created_at: "2025-08-21 18:01:24.099244+00",
         };
 
         const processRole = (role, roleData, isDoneCheck) => {

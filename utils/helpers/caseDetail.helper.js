@@ -142,6 +142,12 @@ const casePrimaryAndAdditionalPartiesData = async (
   filters = []
 ) => {
   try {
+    // console.log("casePrimaryAndAdditionalPartiesData -> ", {
+    //   caseId,
+    //   mediatorId,
+    //   filters,
+    // });
+
     const columns = `
       *,
       casemetadata(*),

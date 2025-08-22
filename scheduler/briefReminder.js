@@ -22,12 +22,6 @@ const {
   casePrimaryAndAdditionalPartiesData,
 } = require("../utils/helpers/caseDetail.helper");
 
-const slotsNames = {
-  morning: "Morning",
-  afternoon: "Afternoon",
-  fullday: "Full Day",
-};
-
 async function getMediator() {
   const { data, error } = await supabase
     .from("mediators")
@@ -43,7 +37,7 @@ async function getMediator() {
 
 async function getMediatorCases(mediatorId, date) {
   try {
-    const filters = [{ column: "mediation_date", value: date }];
+    const filters = [{ column: "mediation_date", value: date, type: "gte" }];
 
     const cases = await casePrimaryAndAdditionalPartiesData(
       null,
@@ -214,13 +208,19 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
 
 async function sendBriefReminders() {
   const today = moment().startOf("day").format("YYYY-MM-DD");
-  // const today = moment("2025-08-19").startOf("day").format("YYYY-MM-DD");
+  // const today = moment("2025-08-21").startOf("day").format("YYYY-MM-DD");
 
   try {
     const mediators = await getMediator();
     for (const mediator of mediators) {
       const mediatorCases = await getMediatorCases(mediator?.user_id, today);
-
+      // console.log(
+      //   "mediatorCases -> mediator?.first_0_name",
+      //   mediator?.first_name,
+      //   "-> ",
+      //   mediatorCases
+      // );
+      // return;
       for (const caseData of mediatorCases) {
         if (
           caseData.isAllPlaintiffBriefDone &&
@@ -283,6 +283,7 @@ async function sendBriefReminders() {
               event: eventLabel,
               email_number,
               next_reminder,
+              // created_at: "2025-08-21 18:01:24.099244+00",
             };
 
             const handleRole = ({ role, roleData }) => {

@@ -13,6 +13,7 @@ const url = "https://app.loops.so/api/v1/transactional";
 
 const headers = {
   Authorization: "Bearer cdbf87f9912af8a5aac2bc5b88b8afbe",
+  // Authorization: "Bearer ",
   "Content-Type": "application/json",
 };
 
@@ -197,8 +198,7 @@ async function findCasesByMediatorId(mediator_id, columns = "*", filters = []) {
     filters.forEach((filter) => {
       if (filter?.type === "gte") {
         query = query.gte(filter.column, filter.value);
-      }
-      if (filter?.type === "neq") {
+      } else if (filter?.type === "neq") {
         query = query.neq(filter.column, filter.value);
       } else {
         query = query.eq(filter.column, filter.value);
