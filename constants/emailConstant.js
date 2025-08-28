@@ -238,6 +238,25 @@ const CUSTOM_MEDIATORS_EMAILS = {
       return { payload, transcationId };
     },
   },
+
+  "1d855694-4d7c-404b-92b5-b2f95e0c27ac": {
+    email: "jim.shea@guidantlegalsolutions.com",
+    BRIEF_REMINDER_TO_PARTY: (data = {}) => {
+      // For Ari
+      const payload = {
+        name: data?.name || "",
+        mediatorName: data?.mediatorName || "",
+        caseTitle: data?.caseTitle || "",
+        caseNumber: data?.caseNumber || " ",
+        dateAndTime: data?.dateAndTime || "",
+        mediatorEmail: data?.mediatorEmail || "",
+        onboardingURL: data?.onboardingURL || "",
+      };
+      const transcationId = "cmevvd826017p2g0irowa6zdr"; // Jim Shea Confidential Mediation Statement
+
+      return { payload, transcationId };
+    },
+  },
 };
 
 module.exports = {

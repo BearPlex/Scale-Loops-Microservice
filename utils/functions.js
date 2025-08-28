@@ -344,7 +344,7 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
-function generateICSFileForManual(caseData, mediator) {
+function generateICSFileForManual(caseData, mediator, mediator_settings = {}) {
   // parse time using case schedule + mediator timezone
   const [hours, minutes] = (caseData?.case_schedule_time || "00:00").split(":");
   const startDateTime = `${caseData?.mediation_date} ${hours}:${minutes}`;
@@ -352,7 +352,10 @@ function generateICSFileForManual(caseData, mediator) {
   const title =
     caseData?.title || caseData?.case_name || "Zoom Meeting - ScaleMediation";
 
-  const url = caseData?.zoom_link || "";
+  const url =
+    mediator_settings?.zoom_vanity_url !== null
+      ? `${mediator_settings?.zoom_vanity_url}/${caseData?.id}`
+      : caseData?.zoom_link || "";
   const location = url || "Zoom";
   const description = `Zoom meeting scheduled via ScaleMediation.\nJoin Zoom: ${url}`;
 

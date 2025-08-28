@@ -19,7 +19,9 @@ const {
 dayjs.extend(utc);
 
 async function getMediator() {
-  const { data, error } = await supabase.from("mediators").select("*");
+  const { data, error } = await supabase
+    .from("mediators")
+    .select("*,mediator_settings(*)");
   // .eq("email", "hiqbal@bearplex.com");
 
   if (error) {
@@ -164,7 +166,11 @@ async function sendZoomReminders() {
       for (const caseData of mediatorCases) {
         try {
           const { plaintiff, defendant, mediator_id: caseMediator } = caseData;
-          const icsData = generateICSFileForManual(caseData, caseMediator);
+          const icsData = generateICSFileForManual(
+            caseData,
+            caseMediator,
+            mediator?.mediator_settings
+          );
 
           const processPartyEmails = (party, partyRoleKey) => {
             if (!party?.client_id) return;

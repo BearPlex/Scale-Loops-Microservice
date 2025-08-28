@@ -25,7 +25,7 @@ const {
 async function getMediator() {
   const { data, error } = await supabase
     .from("mediators")
-    .select("*")
+    .select("*,mediator_settings(*)")
     .eq("is_odr_mediator", false);
   // .eq("email", "hiqbal@bearplex.com");
 
@@ -271,7 +271,9 @@ async function sendBriefReminders() {
             )?.date;
 
             const email_number = convertCountingWordToDigit(reminderType);
-            const eventLabel = `Brief Reminder ${email_number}/${totalReminders}`;
+            const eventLabel = mediator?.mediator_settings?.brief_text
+              ? `${mediator?.mediator_settings?.brief_text} Reminder ${email_number}/${totalReminders}`
+              : `Brief Reminder ${email_number}/${totalReminders}`;
             const next_reminder = nextReminderDate
               ? moment(nextReminderDate).format("MMMM D, YYYY")
               : null;
