@@ -84,7 +84,7 @@ const sendPaymentEmail = async (caseData, partyData, reminderArr = null) => {
               .startOf("day")
               .format("MMMM DD, YYYY")
           : moment(xDaysAfterOnBoarding).startOf("day").format("MMMM DD, YYYY"),
-      caseNumber: caseData?.case_number,
+      caseNumber: caseData?.case_number || "N/A",
       caseTitle: getFullCaseName(
         caseData?.case_name,
         caseData?.additional_case_names

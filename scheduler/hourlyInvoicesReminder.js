@@ -118,7 +118,7 @@ const sendPaymentEmail = async (invoice, reminderObj = null) => {
               invoice?.invoice_id,
               mediatorData?.user_id
             ),
-      caseNumber: caseData?.case_number || "",
+      caseNumber: caseData?.case_number || "N/A",
     };
 
     // console.log({ baseEmailData });

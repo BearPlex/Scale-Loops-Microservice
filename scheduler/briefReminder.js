@@ -100,7 +100,7 @@ async function onBoardingEmail(mediator, caseData, client) {
       dateAndTime: `${moment(caseData?.mediation_date).format(
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
-      caseNumber: caseData?.case_number,
+      caseNumber: caseData?.case_number || "N/A",
       caseTitle: getFullCaseName(
         caseData?.case_name,
         caseData?.additional_case_names
@@ -163,7 +163,7 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       dateAndTime: `${moment(caseData?.mediation_date).format(
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
-      caseNumber: caseData?.case_number,
+      caseNumber: caseData?.case_number || "N/A",
       caseTitle: getFullCaseName(
         caseData?.case_name,
         caseData?.additional_case_names

@@ -73,7 +73,7 @@ async function formatAndSendEmailForMediator(
         caseData?.case_name,
         caseData?.additional_case_names
       ),
-      caseNumber: caseData?.case_number,
+      caseNumber: caseData?.case_number || "N/A",
       is_odr_mediator: mediator?.is_odr_mediator,
       calenderBlob: icsCalendarData,
     };
@@ -112,7 +112,7 @@ async function formatAndSendEmail(
         caseData?.case_name,
         caseData?.additional_case_names
       ),
-      caseNumber: caseData?.case_number,
+      caseNumber: caseData?.case_number || "N/A",
       is_odr_mediator: mediator?.is_odr_mediator,
       calenderBlob: icsCalendarData,
       case_id: caseData?.id,

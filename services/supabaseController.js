@@ -309,7 +309,7 @@ async function sendOnboardingEmailReminder(payload, emailLog = null) {
               mediatorName,
               mediatorEmail,
               ...(!caseData?.mediator?.is_odr_mediator && {
-                caseNumber: caseNumber || " ",
+                caseNumber: caseNumber || "N/A",
               }),
             },
             transcationId: caseData?.mediator?.is_odr_mediator
@@ -381,7 +381,7 @@ async function sendPaymentsReminders(payload, reminderArr = null) {
       caseTitle,
       mediationDateAndTime,
       ...(!caseData?.mediator?.is_odr_mediator && {
-        caseNumber: caseNumber || " ",
+        caseNumber: caseNumber || "N/A",
       }),
     },
   };
@@ -466,7 +466,7 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
             name,
             dateAndTime,
             caseTitle,
-            caseNumber: caseNumber || " ",
+            caseNumber: caseNumber || "N/A",
             onboardingURL,
             mediatorName,
             mediatorEmail,
@@ -476,7 +476,7 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
               name,
               dateAndTime,
               caseTitle,
-              caseNumber: caseNumber || " ",
+              caseNumber: caseNumber || "N/A",
               onboardingURL,
               mediatorName,
               mediatorEmail,
@@ -683,7 +683,7 @@ async function sendZoomEmailReminder(payload, emailLog = null) {
               zoomURL,
               mediatorName,
               mediatorEmail,
-              ...(!is_odr_mediator && { caseNumber: caseNumber || " " }),
+              ...(!is_odr_mediator && { caseNumber: caseNumber || "N/A" }),
             },
             transcationId: is_odr_mediator
               ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_ODR_MEDIATOR
@@ -749,7 +749,7 @@ async function sendZoomEmailReminderForMediators(payload) {
       zoomURL,
       mediatorName,
       ...(!is_odr_mediator && {
-        caseNumber: caseNumber || " ",
+        caseNumber: caseNumber || "N/A",
       }),
     },
     attachments: [
