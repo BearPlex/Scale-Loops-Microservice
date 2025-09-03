@@ -13,6 +13,7 @@ const {
   fetchEmailRemainders,
   markReminderAsSent,
 } = require("../services/supabaseController");
+const { CASE_STATUS } = require("../constants/constant");
 
 async function getOdrMediator() {
   const { data, error } = await supabase
@@ -33,6 +34,7 @@ async function getMediatorCases(mediatorId, date) {
       .from("cases")
       .select(`*, onboarding(*), odr_case_meta_data(*)`)
       .gt("mediation_date", date)
+      .neq("status", CASE_STATUS.cancelled)
       .eq("mediator_id", mediatorId);
     // .eq("id", 1188);
 

@@ -16,6 +16,7 @@ const {
 const {
   casePrimaryAndAdditionalPartiesData,
 } = require("../utils/helpers/caseDetail.helper");
+const { CASE_STATUS } = require("../constants/constant");
 dayjs.extend(utc);
 
 async function getMediator() {
@@ -41,6 +42,7 @@ async function getMediatorCases(mediatorId) {
     const filters = [
       { column: "mediation_date", value: oneDayAfter },
       { column: "zoom_id", value: null, type: "neq" },
+      { column: "status", value: CASE_STATUS.cancelled, type: "neq" },
     ];
 
     const cases = await casePrimaryAndAdditionalPartiesData(

@@ -21,6 +21,7 @@ const { calculateBriefDays } = require("../utils/functions");
 const {
   casePrimaryAndAdditionalPartiesData,
 } = require("../utils/helpers/caseDetail.helper");
+const { CASE_STATUS } = require("../constants/constant");
 
 async function getMediator() {
   const { data, error } = await supabase
@@ -37,7 +38,10 @@ async function getMediator() {
 
 async function getMediatorCases(mediatorId, date) {
   try {
-    const filters = [{ column: "mediation_date", value: date, type: "gte" }];
+    const filters = [
+      { column: "mediation_date", value: date, type: "gte" },
+      { column: "status", value: CASE_STATUS.cancelled, type: "neq" },
+    ];
 
     const cases = await casePrimaryAndAdditionalPartiesData(
       null,

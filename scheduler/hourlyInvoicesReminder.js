@@ -17,6 +17,7 @@ const {
   convertCountingWordToDigit,
   getNextValidReminder,
 } = require("../utils/functions");
+const { CASE_STATUS } = require("../constants/constant");
 
 async function getHourlyInvoicesReminders() {
   try {
@@ -27,11 +28,12 @@ async function getHourlyInvoicesReminders() {
         invoice:hourly_invoice_id!inner(*,
           mediator:mediator_id(first_name,last_name,email,user_id,mediator_id,email_cc,timezone),
           client:client_id(name,email,client_id),
-          case:case_id(id,case_schedule_time,mediation_date,case_number,case_name,additional_case_names,plaintiff_id,defender_id)
+          case:case_id(id,case_schedule_time,mediation_date,case_number,case_name,additional_case_names,plaintiff_id,defender_id,status)
         )`
       )
       .neq("hourly_invoice_id.status", "paid")
-      .neq("hourly_invoice_id.status", "paid_manually");
+      .neq("hourly_invoice_id.status", "paid_manually")
+      .neq("hourly_invoice_id.case_id.status", CASE_STATUS.cancelled);
     // .in("id", [206, 207]);
 
     if (error) {

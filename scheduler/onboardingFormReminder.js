@@ -17,10 +17,11 @@ const { calculateBriefDays } = require("../utils/functions");
 const {
   casePrimaryAndAdditionalPartiesData,
 } = require("../utils/helpers/caseDetail.helper");
+const { CASE_STATUS } = require("../constants/constant");
 
 async function getMediator() {
   const { data, error } = await supabase.from("mediators").select("*");
-  // .neq("email", "eric@resolvewannon.com");
+  // .eq("email", "hiqbal@bearplex.com");
 
   if (error) {
     return [];
@@ -32,7 +33,7 @@ async function getMediatorCases(mediatorId, date) {
   try {
     const filters = [
       { column: "mediation_date", value: date, type: "gte" },
-      // { column: "id", value: 622 },
+      { column: "status", value: CASE_STATUS.cancelled, type: "neq" },
     ];
 
     const cases = await casePrimaryAndAdditionalPartiesData(
@@ -175,7 +176,10 @@ async function sendOnboardingReminders() {
 async function processMediatorCases(mediator, today) {
   try {
     const mediatorCases = await getMediatorCases(mediator?.user_id, today);
-    // console.log("mediatorCases", mediatorCases);
+    // console.log(
+    //   "mediatorCases",
+    //   mediatorCases?.map((x) => ({ case_name: x.case_name, status: x.status }))
+    // );
     // return;
     for (const caseData of mediatorCases) {
       try {
@@ -388,6 +392,7 @@ async function markRemindersAsSent(emailReminderId, reminderTypesToMark) {
   await executePromises(markPromises, `markReminderAsSent`);
 }
 
+// sendOnboardingReminders();
 module.exports = {
   sendOnboardingReminders,
 };

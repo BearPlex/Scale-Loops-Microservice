@@ -22,6 +22,7 @@ const {
 const {
   casePrimaryAndAdditionalPartiesData,
 } = require("../utils/helpers/caseDetail.helper");
+const { CASE_STATUS } = require("../constants/constant");
 
 async function getMediator() {
   const { data, error } = await supabase.from("mediators").select("*");
@@ -35,7 +36,10 @@ async function getMediator() {
 
 async function getMediatorCases(mediatorId, today) {
   try {
-    const filters = [{ column: "mediation_date", value: today, type: "gte" }];
+    const filters = [
+      { column: "mediation_date", value: today, type: "gte" },
+      { column: "status", value: CASE_STATUS.cancelled, type: "neq" },
+    ];
 
     const cases = await casePrimaryAndAdditionalPartiesData(
       null,
