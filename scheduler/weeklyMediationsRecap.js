@@ -11,10 +11,6 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
     userId ? { user_id_input: userId } : { user_id_input: null }
   );
 
-  console.log("data>>>>>>>>>>>>>>>>>>.",data)
-
-  console.log("data>>>>>>>>>>>>>>>>2", data?.[0].nextWeekCases);
-
   if (error) {
     console.error("Error fetching weekly summary:", error);
     return;
