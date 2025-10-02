@@ -366,5 +366,4 @@ weeklyMediationRecap();
 
 module.exports = {
   weeklyMediationRecap,
-  sendWeeklyRecapEmailToMediator,
 };
