@@ -1,7 +1,8 @@
 const { MEDIATORS } = require("./user.constant");
 
 const LOOPS_EMAIL_TRANSACTIONAL_IDS = {
-  HOURLY_INVOICE_EMAIL_ID: "cm9ingbxa3b95hnsowyaveln1",
+  HOURLY_INVOICE_TO_PARTY: "cm9ingbxa3b95hnsowyaveln1",
+  HOURLY_INVOICE_REMINDER_TO_PARTY: "cmbt3hzaq22so0x0i0547g1ba",
 
   MEDIATION_MEETING_SCHEDULED: "clzv3neig0298t0ajzkzsu52m",
   MEDIATION_MEETING_SCHEDULED_ODR: "cm8wuuzcf7o7w1ls71to3k1gd",

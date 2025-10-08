@@ -490,7 +490,8 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
                 zoomLink: zoomLink || "N/A",
               }),
             },
-            transcationId: LOOPS_EMAIL_TRANSACTIONAL_IDS.BRIEF_FOR_ODR_MEDIATOR,
+            transcationId:
+              LOOPS_EMAIL_TRANSACTIONAL_IDS.BRIEF_REMINDER_NON_ODR_MEDIATOR,
           };
 
     const data = {
@@ -608,11 +609,12 @@ async function sendHourlyInvoiceReminder(payload, reminderArr = null) {
               mediatorEmail,
               caseTitle,
               dateAndTime: mediationDateAndTime,
+              zoomLink: caseData?.zoom_link || "N/A",
               // dueDate: dueDate || "",
               // caseNumber: caseNumber || "",
             },
             transcationId:
-              LOOPS_EMAIL_TRANSACTIONAL_IDS.HOURLY_INVOICE_REMINDER,
+              LOOPS_EMAIL_TRANSACTIONAL_IDS.HOURLY_INVOICE_REMINDER_TO_PARTY,
           };
 
     const data = {
