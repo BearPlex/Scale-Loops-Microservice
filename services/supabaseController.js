@@ -295,10 +295,10 @@ async function sendOnboardingEmailReminder(payload, emailLog = null) {
             name,
             mediatorName,
             caseTitle,
+            caseNumber: caseNumber || "N/A",
             dateAndTime,
             onboardingURL,
             mediatorEmail,
-            caseNumber,
           })
         : {
             payload: {
@@ -310,6 +310,7 @@ async function sendOnboardingEmailReminder(payload, emailLog = null) {
               mediatorEmail,
               ...(!caseData?.mediator?.is_odr_mediator && {
                 caseNumber: caseNumber || "N/A",
+                zoomLink: caseData?.zoom_link || "N/A",
               }),
             },
             transcationId: caseData?.mediator?.is_odr_mediator
@@ -382,9 +383,11 @@ async function sendPaymentsReminders(payload, reminderArr = null) {
       mediationDateAndTime,
       ...(!caseData?.mediator?.is_odr_mediator && {
         caseNumber: caseNumber || "N/A",
+        zoomLink: caseData?.zoom_link || "N/A",
       }),
     },
   };
+
   try {
     const response = await axios.post(url, data, { headers });
     if (response) {
@@ -453,6 +456,9 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
     mediatorName,
     mediatorEmail,
     mediatorUserId,
+
+    zoomLink,
+    isOdrMediator = false,
   } = payload;
 
   try {
@@ -464,22 +470,25 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
       typeof customMediator?.BRIEF_REMINDER_TO_PARTY === "function"
         ? customMediator.BRIEF_REMINDER_TO_PARTY({
             name,
-            dateAndTime,
+            mediatorName,
             caseTitle,
             caseNumber: caseNumber || "N/A",
-            onboardingURL,
-            mediatorName,
+            dateAndTime,
             mediatorEmail,
+            onboardingURL,
           })
         : {
             payload: {
               name,
               dateAndTime,
               caseTitle,
-              caseNumber: caseNumber || "N/A",
               onboardingURL,
               mediatorName,
               mediatorEmail,
+              ...(!isOdrMediator && {
+                caseNumber: caseNumber || "N/A",
+                zoomLink: zoomLink || "N/A",
+              }),
             },
             transcationId: LOOPS_EMAIL_TRANSACTIONAL_IDS.BRIEF_FOR_ODR_MEDIATOR,
           };

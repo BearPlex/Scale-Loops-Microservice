@@ -174,6 +174,9 @@ async function formatAndSendEmail(mediator, caseData, client, emailLog = null) {
       ),
       mediatorEmail: mediator?.email,
       mediatorUserId: mediator?.user_id,
+
+      zoomLink: caseData?.zoom_link || "N/A",
+      isOdrMediator: mediator?.is_odr_mediator,
     };
 
     await sendBriefEmailReminder(
