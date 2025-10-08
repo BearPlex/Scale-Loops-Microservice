@@ -268,6 +268,42 @@ async function getLatestLog({ case_id, plaintiff_id, defender_id, type }) {
   }
 }
 
+async function findParticipants(caseId, selectQuery = "*") {
+  try {
+    const { data, error } = await supabase
+      .from(PARTICIPANTS_TABLE)
+      .select(selectQuery)
+      .eq("case_id", caseId);
+
+    if (error) throw error;
+
+    return data;
+  } catch (err) {
+    console.error("Error fetching participants:", err);
+    throw err;
+  }
+}
+
+async function findAdditionalParticipants(caseId, selectQuery = "*") {
+  try {
+    const { data, error } = await supabase
+      .from(ADDITIONAL_PARTICIPANTS_TABLE)
+      .select(selectQuery)
+      .eq("case_id", caseId);
+
+    if (error) throw error;
+
+    return data;
+  } catch (err) {
+    console.error("Error fetching additional participants:", err);
+    throw err;
+  }
+}
+
+/////////////////////////////////
+/////// Emails Functions ////////
+/////////////////////////////////
+
 async function sendOnboardingEmailReminder(payload, emailLog = null) {
   const {
     email,
@@ -491,7 +527,7 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
               }),
             },
             transcationId:
-              LOOPS_EMAIL_TRANSACTIONAL_IDS.BRIEF_REMINDER_NON_ODR_MEDIATOR,
+              LOOPS_EMAIL_TRANSACTIONAL_IDS.BRIEF_REMINDER_TO_PARTY,
           };
 
     const data = {
@@ -778,38 +814,6 @@ async function sendZoomEmailReminderForMediators(payload) {
   } catch (error) {
     console.log(error);
     throw error;
-  }
-}
-
-async function findParticipants(caseId, selectQuery = "*") {
-  try {
-    const { data, error } = await supabase
-      .from(PARTICIPANTS_TABLE)
-      .select(selectQuery)
-      .eq("case_id", caseId);
-
-    if (error) throw error;
-
-    return data;
-  } catch (err) {
-    console.error("Error fetching participants:", err);
-    throw err;
-  }
-}
-
-async function findAdditionalParticipants(caseId, selectQuery = "*") {
-  try {
-    const { data, error } = await supabase
-      .from(ADDITIONAL_PARTICIPANTS_TABLE)
-      .select(selectQuery)
-      .eq("case_id", caseId);
-
-    if (error) throw error;
-
-    return data;
-  } catch (err) {
-    console.error("Error fetching additional participants:", err);
-    throw err;
   }
 }
 
