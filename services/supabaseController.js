@@ -325,34 +325,34 @@ async function sendOnboardingEmailReminder(payload, emailLog = null) {
 
     const { payload: emailPayload, transcationId } =
       customMediator?.email &&
-      customMediator?.ONBOARDING_REMINDER_TO_PARTY &&
-      typeof customMediator?.ONBOARDING_REMINDER_TO_PARTY === "function"
+        customMediator?.ONBOARDING_REMINDER_TO_PARTY &&
+        typeof customMediator?.ONBOARDING_REMINDER_TO_PARTY === "function"
         ? customMediator.ONBOARDING_REMINDER_TO_PARTY({
+          name,
+          mediatorName,
+          caseTitle,
+          caseNumber: caseNumber || "N/A",
+          dateAndTime,
+          onboardingURL,
+          mediatorEmail,
+        })
+        : {
+          payload: {
             name,
-            mediatorName,
             caseTitle,
-            caseNumber: caseNumber || "N/A",
             dateAndTime,
             onboardingURL,
+            mediatorName,
             mediatorEmail,
-          })
-        : {
-            payload: {
-              name,
-              caseTitle,
-              dateAndTime,
-              onboardingURL,
-              mediatorName,
-              mediatorEmail,
-              ...(!caseData?.mediator?.is_odr_mediator && {
-                caseNumber: caseNumber || "N/A",
-                zoomLink: caseData?.zoom_link || "N/A",
-              }),
-            },
-            transcationId: caseData?.mediator?.is_odr_mediator
-              ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ONBOARDING_REMINDER_FOR_ODR_MEDIATOR
-              : LOOPS_EMAIL_TRANSACTIONAL_IDS.ONBOARDING_REMINDER_FOR_MEDIATOR,
-          };
+            ...(!caseData?.mediator?.is_odr_mediator && {
+              caseNumber: caseNumber || "N/A",
+              zoomLink: caseData?.zoom_link || "N/A",
+            }),
+          },
+          transcationId: caseData?.mediator?.is_odr_mediator
+            ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ONBOARDING_REMINDER_FOR_ODR_MEDIATOR
+            : LOOPS_EMAIL_TRANSACTIONAL_IDS.ONBOARDING_REMINDER_FOR_MEDIATOR,
+        };
 
     const data = {
       transactionalId: transcationId,
@@ -502,33 +502,33 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
 
     const { payload: emailPayload, transcationId } =
       customMediator?.email &&
-      customMediator?.BRIEF_REMINDER_TO_PARTY &&
-      typeof customMediator?.BRIEF_REMINDER_TO_PARTY === "function"
+        customMediator?.BRIEF_REMINDER_TO_PARTY &&
+        typeof customMediator?.BRIEF_REMINDER_TO_PARTY === "function"
         ? customMediator.BRIEF_REMINDER_TO_PARTY({
-            name,
-            mediatorName,
-            caseTitle,
-            caseNumber: caseNumber || "N/A",
-            dateAndTime,
-            mediatorEmail,
-            onboardingURL,
-          })
+          name,
+          mediatorName,
+          caseTitle,
+          caseNumber: caseNumber || "N/A",
+          dateAndTime,
+          mediatorEmail,
+          onboardingURL,
+        })
         : {
-            payload: {
-              name,
-              dateAndTime,
-              caseTitle,
-              onboardingURL,
-              mediatorName,
-              mediatorEmail,
-              ...(!isOdrMediator && {
-                caseNumber: caseNumber || "N/A",
-                zoomLink: zoomLink || "N/A",
-              }),
-            },
-            transcationId:
-              LOOPS_EMAIL_TRANSACTIONAL_IDS.BRIEF_REMINDER_TO_PARTY,
-          };
+          payload: {
+            name,
+            dateAndTime,
+            caseTitle,
+            onboardingURL,
+            mediatorName,
+            mediatorEmail,
+            ...(!isOdrMediator && {
+              caseNumber: caseNumber || "N/A",
+              zoomLink: zoomLink || "N/A",
+            }),
+          },
+          transcationId:
+            LOOPS_EMAIL_TRANSACTIONAL_IDS.BRIEF_REMINDER_TO_PARTY,
+        };
 
     const data = {
       transactionalId: transcationId,
@@ -623,35 +623,35 @@ async function sendHourlyInvoiceReminder(payload, reminderArr = null) {
 
     const { payload: emailPayload, transcationId } =
       customMediator?.email &&
-      customMediator?.HOURLY_PAYMENT_REMINDER_TO_PARTY &&
-      typeof customMediator?.HOURLY_PAYMENT_REMINDER_TO_PARTY === "function"
+        customMediator?.HOURLY_PAYMENT_REMINDER_TO_PARTY &&
+        typeof customMediator?.HOURLY_PAYMENT_REMINDER_TO_PARTY === "function"
         ? customMediator.HOURLY_PAYMENT_REMINDER_TO_PARTY({
+          name,
+          mediatorName,
+          totalDue,
+          paymentURL,
+          mediatorEmail,
+          caseTitle,
+          mediationDateAndTime: mediationDateAndTime,
+          dueDate,
+          caseNumber,
+        })
+        : {
+          payload: {
             name,
             mediatorName,
             totalDue,
-            paymentURL,
+            paymentURL: paymentURL || " ",
             mediatorEmail,
             caseTitle,
-            mediationDateAndTime: mediationDateAndTime,
-            dueDate,
-            caseNumber,
-          })
-        : {
-            payload: {
-              name,
-              mediatorName,
-              totalDue,
-              paymentURL: paymentURL || " ",
-              mediatorEmail,
-              caseTitle,
-              dateAndTime: mediationDateAndTime,
-              zoomLink: caseData?.zoom_link || "N/A",
-              // dueDate: dueDate || "",
-              // caseNumber: caseNumber || "",
-            },
-            transcationId:
-              LOOPS_EMAIL_TRANSACTIONAL_IDS.HOURLY_INVOICE_REMINDER_TO_PARTY,
-          };
+            dateAndTime: mediationDateAndTime,
+            zoomLink: caseData?.zoom_link || "N/A",
+            // dueDate: dueDate || "",
+            // caseNumber: caseNumber || "",
+          },
+          transcationId:
+            LOOPS_EMAIL_TRANSACTIONAL_IDS.HOURLY_INVOICE_REMINDER_TO_PARTY,
+        };
 
     const data = {
       transactionalId: transcationId,
@@ -711,31 +711,31 @@ async function sendZoomEmailReminder(payload, emailLog = null) {
 
     const { payload: emailPayload, transcationId } =
       customMediator?.email &&
-      customMediator?.ZOOM_LINK_REMINDER_TO_PARTY &&
-      typeof customMediator?.ZOOM_LINK_REMINDER_TO_PARTY === "function"
+        customMediator?.ZOOM_LINK_REMINDER_TO_PARTY &&
+        typeof customMediator?.ZOOM_LINK_REMINDER_TO_PARTY === "function"
         ? customMediator.ZOOM_LINK_REMINDER_TO_PARTY({
+          name,
+          caseTitle,
+          dateAndTime,
+          zoomURL,
+          mediatorName,
+          mediatorEmail,
+          caseNumber,
+        })
+        : {
+          payload: {
             name,
             caseTitle,
             dateAndTime,
             zoomURL,
             mediatorName,
             mediatorEmail,
-            caseNumber,
-          })
-        : {
-            payload: {
-              name,
-              caseTitle,
-              dateAndTime,
-              zoomURL,
-              mediatorName,
-              mediatorEmail,
-              ...(!is_odr_mediator && { caseNumber: caseNumber || "N/A" }),
-            },
-            transcationId: is_odr_mediator
-              ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_ODR_MEDIATOR
-              : LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_MEDIATOR,
-          };
+            ...(!is_odr_mediator && { caseNumber: caseNumber || "N/A" }),
+          },
+          transcationId: is_odr_mediator
+            ? LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_ODR_MEDIATOR
+            : LOOPS_EMAIL_TRANSACTIONAL_IDS.ZOOM_REMINDER_FOR_PARTIES_MEDIATOR,
+        };
 
     const data = {
       transactionalId: transcationId,
@@ -810,10 +810,14 @@ async function sendZoomEmailReminderForMediators(payload) {
 
   try {
     const response = await axios.post(url, data, { headers });
-    return response;
+    console.log("✅ Zoom reminder email sent to mediator:", response.data);
+    return { success: true, data: response.data };
   } catch (error) {
-    console.log(error);
-    throw error;
+    console.error(
+      "❌ Error sending Zoom reminder to mediator:",
+      error.response?.data || error.message
+    );
+    return { success: false, error: error.response?.data || error.message };
   }
 }
 
