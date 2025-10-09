@@ -19,8 +19,8 @@ const { weeklyMediationRecap } = require("../scheduler/weeklyMediationsRecap");
 const { sendZoomReminders } = require("../scheduler/zoomReminder");
 
 async function runAllPaymentReminders() {
-  await plaintiffReminders();
   await defendentReminders();
+  await plaintiffReminders();
   await additionalPartyPaymentReminders();
 }
 

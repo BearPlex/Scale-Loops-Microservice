@@ -85,8 +85,8 @@ const sendPaymentEmail = async (caseData, partyData, reminderArr = null) => {
       dueDate:
         remainingDueDays <= 0
           ? moment(partyData?.onboarding?.created_at)
-              .startOf("day")
-              .format("MMMM DD, YYYY")
+            .startOf("day")
+            .format("MMMM DD, YYYY")
           : moment(xDaysAfterOnBoarding).startOf("day").format("MMMM DD, YYYY"),
       caseNumber: caseData?.case_number || "N/A",
       caseTitle: getFullCaseName(
@@ -99,9 +99,9 @@ const sendPaymentEmail = async (caseData, partyData, reminderArr = null) => {
         partyData?.payment?.invoice_id === null
           ? partyData?.payment?.payment_url
           : generateInvoiceUrlFrontend(
-              partyData?.payment?.invoice_id,
-              caseData?.mediator_id?.user_id
-            ),
+            partyData?.payment?.invoice_id,
+            caseData?.mediator_id?.user_id
+          ),
       mediatorEmail: caseData?.mediator_id?.email,
     };
 
@@ -156,7 +156,21 @@ const getAllRecordOfParty = (
   is_additional_party = false,
   additional_party_id = null
 ) => {
+  console.log(`[getAllRecordOfParty] Accessing caseData["${partyType}"]`, {
+    partyType,
+    availableKeys: Object.keys(caseData),
+    hasPlaintiff: !!caseData.plaintiff,
+    hasDefendant: !!caseData.defendant,
+    exists: !!caseData[partyType]
+  });
+
   const primaryData = caseData[partyType];
+
+  if (!primaryData) {
+    console.error(`[getAllRecordOfParty] primaryData is undefined for partyType: ${partyType}`);
+    return null;
+  }
+
   const additionalData = is_additional_party
     ? primaryData?.additionalParties
     : [];
@@ -228,6 +242,21 @@ async function sendReminders(forClient) {
             additionalParty?.id
           );
 
+          console.log(`[DEBUG] Case ${caseData.id} - ${forClient} - partyData:`, {
+            exists: !!partyData,
+            hasEmail: !!partyData?.email,
+            hasPayment: !!partyData?.payment,
+            email: partyData?.email,
+            name: partyData?.name,
+            role: partyData?.role,
+            paymentStatus: partyData?.payment?.status
+          });
+
+          if (!partyData) {
+            console.error(`[ERROR] Case ${caseData.id} - partyData is null for ${forClient}`);
+            continue;
+          }
+
           if (
             partyData?.payment.status === "paid" ||
             partyData?.payment.status === "paid_manually"
@@ -259,12 +288,12 @@ async function sendReminders(forClient) {
                       )}/${totalReminders}`,
                       amount:
                         partyData?.payment?.grand_total &&
-                        partyData?.payment?.grand_total > 0
+                          partyData?.payment?.grand_total > 0
                           ? partyData?.payment?.grand_total
                           : partyData?.payment?.amount,
                       next_reminder:
                         nextReminderDate !== null &&
-                        nextReminderDate !== undefined
+                          nextReminderDate !== undefined
                           ? moment(nextReminderDate).format("MMMM D,YYYY")
                           : null,
                       // created_at: "2025-08-21 18:01:24.099244+00",
@@ -301,8 +330,7 @@ async function sendReminders(forClient) {
         await Promise.all(markReminderPromises.map((fn) => fn()));
 
         console.log(
-          `Payment Reminders of ${`payment-${forClient}`} -> case_id (${
-            caseData.id
+          `Payment Reminders of ${`payment-${forClient}`} -> case_id (${caseData.id
           }) have been processed. Date: ${today}`
         );
       }
@@ -317,17 +345,17 @@ async function sendReminders(forClient) {
 
 async function defendentReminders() {
   const param1 = "defendant";
-  sendReminders(param1);
+  await sendReminders(param1);
 }
 
 async function plaintiffReminders() {
   const param1 = "plaintiff";
-  sendReminders(param1);
+  await sendReminders(param1);
 }
 
 async function additionalPartyPaymentReminders() {
   const param1 = "additional-party";
-  sendReminders(param1);
+  await sendReminders(param1);
 }
 
 // plaintiffReminders();
