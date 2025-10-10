@@ -10,6 +10,7 @@ const { LOOPS_EMAIL_TRANSACTIONAL_IDS } = require("../constants/emailConstant");
 const axios = require("axios");
 
 async function sendWeeklyRecapEmailToMediator(userId = null) {
+  // console.log("userId", userId)
   const { data, error } = await supabase.rpc(
     "get_all_mediators_weekly_summary_v1",
     userId ? { user_id_input: userId } : { user_id_input: null }
@@ -19,19 +20,20 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
     console.error("Error fetching weekly summary:", error);
     return;
   }
-
+  // console.log("data", data)
   if (!data || !Array.isArray(data)) {
     console.warn("Invalid or empty response from summary");
     return;
   }
-  // console.log("data",data);
+  // console.log("data", data);
   // return;
+
 
   for (const item of data) {
     const mediator = item?.mediator;
     const thisWeek = item?.thisWeek;
     const nextWeekCases = item?.nextWeekCases || [];
-
+    // console.log("nextWeekCases", nextWeekCases)
     if (!mediator?.email) continue;
 
     const cases = await Promise.all(
@@ -96,11 +98,15 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
           };
 
           const hasDocs = (obj = {}) => {
+            if (mediator?.is_odr_mediator) {
+              return (
+                normalizeBoolean(obj.key_documents) ||
+                normalizeBoolean(obj.documents) ||
+                normalizeBoolean(obj.has_documents)
+              );
+            }
             return (
-              normalizeBoolean(obj.brief) ||
-              normalizeBoolean(obj.key_documents) ||
-              normalizeBoolean(obj.documents) ||
-              normalizeBoolean(obj.has_documents)
+              normalizeBoolean(obj.brief)
             );
           };
 
@@ -123,6 +129,7 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
           };
 
           const pushParty = (obj = {}, role, pricingTypeForCase = null) => {
+            // console.log("obj", obj)
             if (!obj) return;
             parties.push({
               partyName: getDisplayName(obj),
@@ -135,9 +142,9 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
                   obj.payment,
                   obj.hourly_payment ?? obj.hourlyPayment ?? null,
                   pricingTypeForCase ||
-                    obj.pricing_type ||
-                    obj.paymentType ||
-                    null
+                  obj.pricing_type ||
+                  obj.paymentType ||
+                  null
                 )
               ),
               documents: toCheckmark(hasDocs(obj)),
@@ -226,11 +233,11 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
           };
 
           // Backward compatibility: old shape party1/party2
-          const casePricingType = c.pricingType || c.pricing_type || null;
+          const casePricingType = c?.pricingType || c?.pricing_type || null;
           if (c.party1 && (c.party1.name || c.party1.email)) {
             pushParty(
               c.party1,
-              c.party1.client_type || "Plaintiff",
+              c.party1?.client_type || "Plaintiff",
               casePricingType
             );
           }
@@ -252,10 +259,10 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
 
           // Additional parties: any number, either side (support multiple possible keys)
           let additionalArrays = [
-            c.additionalParties,
-            c.additional_parties,
-            c.additionalParticipants,
-            c.additional_participants,
+            // c?.additionalParties || [],
+            // c?.additional_parties || [],
+            // c?.additionalParticipants || [],
+            c?.additional_participants || [],
           ].filter(Array.isArray);
 
           // If RPC payload doesn't include additional parties, fetch them
@@ -325,6 +332,7 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
               }
             }
           }
+          // console.log("parties", parties)
 
           const scheduledDate = c?.scheduledDate || c?.mediation_date;
           const scheduledTime = c?.scheduledTime || c?.case_schedule_time;
@@ -334,7 +342,7 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
           const caseDate = scheduledTime
             ? `${dateStr} at ${convertToAMPM(scheduledTime)}`
             : dateStr;
-
+          // console.log("ererere")
           return {
             caseTitle: c.caseName || c.case_name || "Untitled Case",
             caseDate,
@@ -350,24 +358,22 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
     const casesHtml = generateCasesHtml(cases);
 
     const totalMediationsHtml = `<mj-wrapper padding-left="12px" padding-right="14px" padding="3px">
-          <mj-section padding="0px">
-            <mj-column padding="0px">
-              <mj-text padding="0px">
-                <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ecfdf5; border-left: 4px solid #34d399; border-top-right-radius: 5px; border-bottom-right-radius: 5px; padding: 16px;">
-                  <tr>
-                    <td style="padding: 16px; font-size: 14px; color: #111827;">
-                      <strong>Nice work</strong> — you completed <span style="color:#027776; font-size:16px; font-weight:bold;">${
-                        thisWeek?.totalMediations
-                      }</span> ${
-      thisWeek?.totalMediations > 1 ? "mediations" : "mediation"
-    } this week!<br />
-                    </td>
-                  </tr>
-                </table>
-              </mj-text>
-            </mj-column>
-          </mj-section>
-        </mj-wrapper>`;
+            <mj-section padding="0px">
+              <mj-column padding="0px">
+                <mj-text padding="0px">
+                  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ecfdf5; border-left: 4px solid #34d399; border-top-right-radius: 5px; border-bottom-right-radius: 5px; padding: 16px;">
+                    <tr>
+                      <td style="padding: 16px; font-size: 14px; color: #111827;">
+                        <strong>Nice work</strong> — you completed <span style="color:#027776; font-size:16px; font-weight:bold;">${thisWeek?.totalMediations
+      }</span> ${thisWeek?.totalMediations > 1 ? "mediations" : "mediation"
+      } this week!<br />
+                      </td>
+                    </tr>
+                  </table>
+                </mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-wrapper>`;
 
     if (casesHtml === "" && thisWeek?.totalMediations <= 0) {
       console.log(
@@ -381,6 +387,7 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
     const emailData = {
       transactionalId: LOOPS_EMAIL_TRANSACTIONAL_IDS.WEEKLY_RECAP_FOR_MEDIATOR,
       email: mediator.email,
+      // email: "adam@scalemediation.com",
       // email: "hiqbal@bearplex.com",
       dataVariables: {
         mediatorName: `${mediator.first_name} ${mediator.last_name}`,
@@ -389,10 +396,10 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
         casesHtml: casesHtml
           ? casesHtml
           : `<tr>
-              <td colspan="5" style="padding: 10px; text-align: center; font-size: 12px; color: #6b7280;">
-                You have no cases for next week
-              </td>
-            </tr>`,
+                <td colspan="5" style="padding: 10px; text-align: center; font-size: 12px; color: #6b7280;">
+                  You have no cases for next week
+                </td>
+              </tr>`,
         // totalMediations: thisWeek?.totalMediations || 0,
         // deltaCount: thisWeek?.deltaCount || 0,
         // deltaPositive: thisWeek?.deltaPositive || false,
@@ -411,6 +418,7 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
       );
     }
   }
+
 }
 
 async function weeklyMediationRecap() {
@@ -427,7 +435,9 @@ async function weeklyMediationRecap() {
     // "74b49fc0-5d92-4a04-a52a-7f25d4441e9c" // Haider iqbal (STAGING)
     // "ea514a48-e99f-44e3-b5b7-dbe9e9abe473" // Hamad Peraiz (APP)
     // f86dd041-c56c-4db3-a3e7-d3dbe6937a8d
-    // await sendWeeklyRecapEmailToMediator("f86dd041-c56c-4db3-a3e7-d3dbe6937a8d");
+    // 6cc65cd0-a8b5-49e7-b9ee-d0da92e75ff5 // eric
+    // e9df3361-f659-4938-8f8b-bd5572e386e6 //corey
+    // await sendWeeklyRecapEmailToMediator("e9df3361-f659-4938-8f8b-bd5572e386e6");
   } catch (err) {
     console.log(
       `Error While Sending Weekly Mediation Recap: Date: ${today}`,
@@ -436,6 +446,7 @@ async function weeklyMediationRecap() {
   }
 }
 
+// weeklyMediationRecap()
 module.exports = {
   weeklyMediationRecap,
 };
