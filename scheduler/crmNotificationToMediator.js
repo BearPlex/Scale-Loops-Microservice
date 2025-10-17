@@ -24,8 +24,9 @@ function escapeHtml(text) {
 }
 
 function getDaysOverdue(executionDate, today) {
-  const dueDate = dayjs.utc(executionDate);
-  return today.diff(dueDate, 'day');
+  const dueDate = dayjs.utc(executionDate).startOf('day');
+  const todayStart = today.startOf('day');
+  return todayStart.diff(dueDate, 'day');
 }
 
 function formatDate(date, includeDayName = true) {
@@ -118,7 +119,7 @@ function generateOverdueTasksHtml(clientsWithTasks) {
     const isEven = index % 2 === 1;
     const backgroundColor = isEven ? '#fef2f2' : 'white';
 
-    return `<tr style="background-color: ${backgroundColor};"><td class="task-title" style="padding: 18px 20px;">${escapeHtml(task.title) || 'Untitled Task'}</td><td style="padding: 18px 20px;"><div class="contact-name">${escapeHtml(client.name)}</div><div class="contact-email">${escapeHtml(client.email)}</div><div class="contact-role">${escapeHtml(client.designation)}</div></td><td style="padding: 18px 20px;"><div style="display: flex; align-items: flex-start; gap: 8px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg><div><span class="date-text date-overdue" style="white-space: nowrap;">${formatDate(task.execution_date, false)}</span><span class="overdue-badge">${task.daysOverdue} day${task.daysOverdue !== 1 ? 's' : ''} overdue</span></div></div></td></tr>`;
+    return `<tr style="background-color: ${backgroundColor};"><td class="task-title" style="padding: 18px 20px;">${escapeHtml(task.title) || 'Untitled Task'}</td><td style="padding: 18px 20px;"><div class="contact-name">${escapeHtml(client.name)}</div><div class="contact-email">${escapeHtml(client.email)}</div><div class="contact-role">${escapeHtml(client.designation)}</div></td><td style="padding: 18px 20px; text-align: left; vertical-align: middle;"><div style="display: flex; align-items: center;"><img src="https://afudlphkrgumumsmfeor.supabase.co/storage/v1/object/public/onboarding_form_data/assets/alert.png" alt="⚠️" style="width: 20px; height: 20px; margin-right: 12px; flex-shrink: 0;" /><div><div style="color: #dc2626; font-size: 15px; font-weight: 500; margin-bottom: 8px;">Due: ${formatDate(task.execution_date, false)}</div><div style="color: #dc2626; font-size: 14px; font-weight: 400;">${task.daysOverdue} day${task.daysOverdue !== 1 ? 's' : ''} overdue</div></div></div></td></tr>`;
   })?.slice(0, 5)?.join('');
 }
 
@@ -142,7 +143,7 @@ function generateUpcomingTasksHtml(clientsWithTasks) {
     const isEven = index % 2 === 1;
     const backgroundColor = isEven ? '#eff6ff' : 'white';
 
-    return `<tr style="background-color: ${backgroundColor};"><td class="task-title" style="padding: 18px 20px;">${escapeHtml(task.title) || 'Untitled Task'}</td><td style="padding: 18px 20px;"><div class="contact-name">${escapeHtml(client.name)}</div><div class="contact-email">${escapeHtml(client.email)}</div><div class="contact-role">${escapeHtml(client.designation)}</div></td><td style="padding: 18px 20px;"><div style="display: flex; align-items: flex-start; gap: 8px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top: 2px; flex-shrink: 0;"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg><span class="date-text" style="white-space: nowrap;">${formatDate(task.execution_date)}</span></div></td></tr>`;
+    return `<tr style="background-color: ${backgroundColor};"><td class="task-title" style="padding: 18px 20px;">${escapeHtml(task.title) || 'Untitled Task'}</td><td style="padding: 18px 20px;"><div class="contact-name">${escapeHtml(client.name)}</div><div class="contact-email">${escapeHtml(client.email)}</div><div class="contact-role">${escapeHtml(client.designation)}</div></td><td style="padding: 18px 20px; text-align: left; vertical-align: middle;"><div style="display: flex; align-items: center; justify-content: flex-start;"><img src="https://afudlphkrgumumsmfeor.supabase.co/storage/v1/object/public/onboarding_form_data/assets/calendar-icon-black-border.png" alt="📅" style="width: 18px; height: 18px; margin-right: 8px; flex-shrink: 0; vertical-align: middle;" /><span style="color: #111827; font-size: 14px; font-weight: 400; line-height: 1.4;">Due: ${formatDate(task.execution_date)}</span></div></td></tr>`;
   })?.slice(0, 5)?.join('');
 }
 
@@ -188,7 +189,7 @@ async function sendCrmNotificationToMediator(userId = null) {
 
       const mediatorName = `${mediator.first_name || ''} ${mediator.last_name || ''}`.trim() || 'Mediator';
       const clients = mediatorData.clients || [];
-
+      console.log("clients", { clients })
 
       console.log(`[CRM_NOTIFICATION] Processing ${mediatorName} (${mediator.email}) with ${clients.length} clients`);
 
@@ -232,6 +233,8 @@ async function sendCrmNotificationToMediator(userId = null) {
         email: mediator.email,
         // email: "hiqbal@bearplex.com",
         // email: "dev@scalemediation.com",
+        // email: "adam@scalemediation.com",
+
         dataVariables: {
           mediatorName,
           upcomingTasksHtml,

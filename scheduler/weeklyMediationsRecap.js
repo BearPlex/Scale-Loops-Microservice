@@ -69,15 +69,12 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
                 ? paymentType.toLowerCase()
                 : paymentType;
 
-            if (pricing_type === "hourly") {
+            if (pricing_type === "hourly" && hourlyPayment !== null) {
               // Case 1: Only hourly check
               return normalizeBoolean(hourlyPayment);
             } else if (hourlyPayment === null) {
               // Case 2: Only check payments
               if (typeof payment === "boolean") return payment;
-              if (payment && typeof payment === "object") {
-                return payment.status === "paid" || payment.is_paid === true;
-              }
               if (typeof payment === "string") {
                 const v = payment.toLowerCase();
                 return (
@@ -100,9 +97,10 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
           const hasDocs = (obj = {}) => {
             if (mediator?.is_odr_mediator) {
               return (
-                normalizeBoolean(obj.key_documents) ||
-                normalizeBoolean(obj.documents) ||
-                normalizeBoolean(obj.has_documents)
+                normalizeBoolean(obj.key_documents)
+                // ||
+                // normalizeBoolean(obj.documents) ||
+                // normalizeBoolean(obj.has_documents)
               );
             }
             return (
@@ -129,8 +127,9 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
           };
 
           const pushParty = (obj = {}, role, pricingTypeForCase = null) => {
-            // console.log("obj", obj)
+            console.log("obj", obj)
             if (!obj) return;
+
             parties.push({
               partyName: getDisplayName(obj),
               partyRole: roleLabel(
@@ -140,11 +139,8 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
               payment: toCheckmark(
                 isPaid(
                   obj.payment,
-                  obj.hourly_payment ?? obj.hourlyPayment ?? null,
-                  pricingTypeForCase ||
-                  obj.pricing_type ||
-                  obj.paymentType ||
-                  null
+                  obj.hourly_payment === null ? null : obj.hourly_payment,
+                  c.pricingType,
                 )
               ),
               documents: toCheckmark(hasDocs(obj)),
@@ -231,9 +227,10 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
               };
             }
           };
-
+          // console.log("c", c)
           // Backward compatibility: old shape party1/party2
           const casePricingType = c?.pricingType || c?.pricing_type || null;
+
           if (c.party1 && (c.party1.name || c.party1.email)) {
             pushParty(
               c.party1,
@@ -241,6 +238,7 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
               casePricingType
             );
           }
+
           if (c.party2 && (c.party2.name || c.party2.email)) {
             pushParty(
               c.party2,
@@ -250,12 +248,12 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
           }
 
           // New shape: plaintiff/defendant
-          if (c.plaintiff) {
-            pushParty(c.plaintiff, "plaintiff", casePricingType);
-          }
-          if (c.defendant) {
-            pushParty(c.defendant, "defendant", casePricingType);
-          }
+          // if (c.plaintiff) {
+          //   pushParty(c.plaintiff, "plaintiff", casePricingType);
+          // }
+          // if (c.defendant) {
+          //   pushParty(c.defendant, "defendant", casePricingType);
+          // }
 
           // Additional parties: any number, either side (support multiple possible keys)
           let additionalArrays = [
@@ -265,37 +263,37 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
             c?.additional_participants || [],
           ].filter(Array.isArray);
 
-          // If RPC payload doesn't include additional parties, fetch them
-          if (additionalArrays.length === 0) {
-            try {
-              const caseId = c.caseId || c.case_id || c.id;
-              if (caseId) {
-                // Fetch from case_parties table, excluding primary parties
-                const { data: fetched, error: fetchError } = await supabase
-                  .from("case_parties")
-                  .select("*,client:client_id(*)")
-                  .eq("case_id", caseId)
-                  .not(
-                    "client_id",
-                    "in",
-                    `(${c.plaintiff_id || 0},${c.defender_id || 0})`
-                  );
+          // // If RPC payload doesn't include additional parties, fetch them
+          // if (additionalArrays.length === 0) {
+          //   try {
+          //     const caseId = c.caseId || c.case_id || c.id;
+          //     if (caseId) {
+          //       // Fetch from case_parties table, excluding primary parties
+          //       const { data: fetched, error: fetchError } = await supabase
+          //         .from("case_parties")
+          //         .select("*,client:client_id(*)")
+          //         .eq("case_id", caseId)
+          //         .not(
+          //           "client_id",
+          //           "in",
+          //           `(${c.plaintiff_id || 0},${c.defender_id || 0})`
+          //         );
 
-                if (
-                  !fetchError &&
-                  Array.isArray(fetched) &&
-                  fetched.length > 0
-                ) {
-                  additionalArrays = [fetched];
-                }
-              }
-            } catch (e) {
-              console.log(
-                "Could not fetch additional participants",
-                e?.message || e
-              );
-            }
-          }
+          //       if (
+          //         !fetchError &&
+          //         Array.isArray(fetched) &&
+          //         fetched.length > 0
+          //       ) {
+          //         additionalArrays = [fetched];
+          //       }
+          //     }
+          //   } catch (e) {
+          //     console.log(
+          //       "Could not fetch additional participants",
+          //       e?.message || e
+          //     );
+          //   }
+          // }
 
           if (additionalArrays.length > 0) {
             for (const arr of additionalArrays) {
@@ -437,7 +435,10 @@ async function weeklyMediationRecap() {
     // f86dd041-c56c-4db3-a3e7-d3dbe6937a8d
     // 6cc65cd0-a8b5-49e7-b9ee-d0da92e75ff5 // eric
     // e9df3361-f659-4938-8f8b-bd5572e386e6 //corey
-    // await sendWeeklyRecapEmailToMediator("e9df3361-f659-4938-8f8b-bd5572e386e6");
+    // 414a9fbc-d0e4-4ee6-abcd-90e5c5c53bf4 Jennifer
+    // 1b2d6f19-d846-4eea-a861-8c00b9c848f0 //Fateemah
+    // 571149e9-cf12-4a5a-a5ac-73d8b6a01a9d //ProudFoot
+    // await sendWeeklyRecapEmailToMediator("571149e9-cf12-4a5a-a5ac-73d8b6a01a9d");
   } catch (err) {
     console.log(
       `Error While Sending Weekly Mediation Recap: Date: ${today}`,

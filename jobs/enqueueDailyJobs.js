@@ -18,6 +18,7 @@ const {
 const { crmNotificationToMediator } = require("../scheduler/crmNotificationToMediator");
 const { weeklyMediationRecap } = require("../scheduler/weeklyMediationsRecap");
 const { sendZoomReminders } = require("../scheduler/zoomReminder");
+const { caseOutcomeReportReminder } = require("../scheduler/caseOutcomeReportReminder");
 
 async function runAllPaymentReminders() {
   await defendentReminders();
@@ -42,6 +43,7 @@ const jobs = [
   // // All Mediator only 
   // { name: "crm-notification-to-mediator", fn: crmNotificationToMediator },
   { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
+  // { name: "case-outcome-report-reminder", fn: caseOutcomeReportReminder },
   // // ODR Mediators Only
   { name: "key-documents-reminder", fn: sendKeyDocumentsReminders },
 ];
