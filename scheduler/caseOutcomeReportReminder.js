@@ -4,6 +4,7 @@ const utc = require("dayjs/plugin/utc");
 const { loopsHeader, loopsUrl } = require("../services/supabaseController");
 const { LOOPS_EMAIL_TRANSACTIONAL_IDS } = require("../constants/emailConstant");
 const axios = require("axios");
+const { MEDIATORS } = require("../constants/user.constant");
 
 dayjs.extend(utc);
 
@@ -25,6 +26,7 @@ async function sendCaseOutcomeReportReminder(userId = null) {
         id,
         case_name,
         mediation_date,
+        case_schedule_time,
         mediator:mediator_id(
           mediator_id,
           first_name,
@@ -97,6 +99,7 @@ async function sendCaseOutcomeReportReminder(userId = null) {
 
             const mediatorName = `${mediator.first_name || ''} ${mediator.last_name || ''}`.trim() || 'Mediator';
             const caseTitle = caseData.case_name;
+            const case_schedule_time = caseData.case_schedule_time;
 
             console.log(`[CASE_OUTCOME_REMINDER] Processing reminder for ${mediatorName} - Case: ${caseTitle}`);
 
@@ -104,6 +107,7 @@ async function sendCaseOutcomeReportReminder(userId = null) {
             const emailData = {
                 transactionalId: LOOPS_EMAIL_TRANSACTIONAL_IDS.CASE_OUTCOME_REPORT_REMINDER,
                 email: mediator.email,
+                // email: "hiqbal@bearplex.com",
                 dataVariables: {
                     mediatorName,
                     caseTitle,
@@ -118,7 +122,7 @@ async function sendCaseOutcomeReportReminder(userId = null) {
 
                 console.log(
                     `[CASE_OUTCOME_REMINDER] ✅ Email sent to ${mediator.email} - ` +
-                    `Status: ${response.status} - Case: ${caseTitle}`
+                    `Status: ${response.status} - Case: ${caseTitle} - ${case_schedule_time}`
                 );
                 successCount++;
             } catch (err) {
@@ -159,8 +163,8 @@ async function caseOutcomeReportReminder() {
     console.log(`[CASE_OUTCOME_REMINDER] Running case outcome report reminder job - Date: ${today.format('YYYY-MM-DD')}`);
 
     try {
-        // await sendCaseOutcomeReportReminder();                   
-        await sendCaseOutcomeReportReminder("74b49fc0-5d92-4a04-a52a-7f25d4441e9c");
+        await sendCaseOutcomeReportReminder();
+        // await sendCaseOutcomeReportReminder(MEDIATORS.MATTHEW_PROUDFOOT.user_id);
         return true;
     } catch (err) {
         console.error(

@@ -28,22 +28,23 @@ async function runAllPaymentReminders() {
 
 const jobs = [
   // To Parties Only
-  { name: "onboarding-reminder", fn: sendOnboardingReminders }, // Done Multi party
-  { name: "brief-reminder", fn: sendBriefReminders }, // Done Multi party
-  { name: "payment-reminder", fn: runAllPaymentReminders }, // Done Multi party
+  { name: "onboarding-reminder", fn: sendOnboardingReminders },
+  { name: "brief-reminder", fn: sendBriefReminders },
+  { name: "payment-reminder", fn: runAllPaymentReminders },
   // //
   // //
-  { name: "zoom-reminder", fn: sendZoomReminders }, // Done Multi party
+  { name: "zoom-reminder", fn: sendZoomReminders },
   // //
   // //
-  { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder }, // Done Multi party
-  // //
+  { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder },
   // //
   // //
   // // All Mediator only 
-  // { name: "crm-notification-to-mediator", fn: crmNotificationToMediator },
   { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
-  // { name: "case-outcome-report-reminder", fn: caseOutcomeReportReminder },
+  { name: "crm-notification-to-mediator", fn: crmNotificationToMediator },
+  { name: "case-outcome-report-reminder", fn: caseOutcomeReportReminder },
+  //
+  //
   // // ODR Mediators Only
   { name: "key-documents-reminder", fn: sendKeyDocumentsReminders },
 ];
@@ -54,11 +55,11 @@ async function runJobsSequentially(jobList) {
   for (const job of jobList) {
     try {
       console.log(`📦 Running job: ${job.name}`);
-      await job.fn(); // Wait for the current job to finish
+      await job.fn();
       console.log(`✅ Completed job: ${job.name}`);
     } catch (error) {
       console.error(`❌ Failed job: ${job.name}`, error.message);
-      failedJobs.push(job); // Keep track of failed jobs
+      failedJobs.push(job);
     }
   }
 
@@ -68,7 +69,6 @@ async function runJobsSequentially(jobList) {
 async function enqueueRemindersSequentially() {
   const failedJobs = await runJobsSequentially(jobs);
 
-  // Retry failed jobs, if any
   if (failedJobs.length > 0) {
     console.log("🔁 Retrying failed jobs...");
     await runJobsSequentially(failedJobs);
