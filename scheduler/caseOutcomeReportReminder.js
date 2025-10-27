@@ -5,6 +5,7 @@ const { loopsHeader, loopsUrl } = require("../services/supabaseController");
 const { LOOPS_EMAIL_TRANSACTIONAL_IDS } = require("../constants/emailConstant");
 const axios = require("axios");
 const { MEDIATORS } = require("../constants/user.constant");
+const { CASE_STATUS } = require("../constants/constant");
 
 dayjs.extend(utc);
 
@@ -35,6 +36,7 @@ async function sendCaseOutcomeReportReminder(userId = null) {
           email
         )
       `)
+            .neq('status', CASE_STATUS.cancelled)
             .eq('mediation_date', fortyEightHoursAgo.format('YYYY-MM-DD'))
             .not('mediator_id', 'is', null);
 
