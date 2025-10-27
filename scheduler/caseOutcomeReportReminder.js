@@ -26,6 +26,7 @@ async function sendCaseOutcomeReportReminder(userId = null) {
         id,
         case_name,
         mediation_date,
+        case_number,
         case_schedule_time,
         mediator:mediator_id(
           mediator_id,
@@ -100,6 +101,7 @@ async function sendCaseOutcomeReportReminder(userId = null) {
             const mediatorName = `${mediator.first_name || ''} ${mediator.last_name || ''}`.trim() || 'Mediator';
             const caseTitle = caseData.case_name;
             const case_schedule_time = caseData.case_schedule_time;
+            const case_number = caseData.case_number;
 
             console.log(`[CASE_OUTCOME_REMINDER] Processing reminder for ${mediatorName} - Case: ${caseTitle}`);
 
@@ -110,6 +112,7 @@ async function sendCaseOutcomeReportReminder(userId = null) {
                 // email: "hiqbal@bearplex.com",
                 dataVariables: {
                     mediatorName,
+                    caseNumber: case_number || "N/A",
                     caseTitle,
                     caseUrl: `https://app.scalemediation.com/cases/${caseData.id}`,
                 },
