@@ -15,8 +15,8 @@ async function sendCaseOutcomeReportReminder(userId = null) {
 
     try {
         // Calculate the date 48 hours ago
-        const fortyEightHoursAgo = dayjs.utc();
-        // .subtract(48, 'hours');
+        const fortyEightHoursAgo = dayjs.utc()
+            .subtract(48, 'hours');
 
         console.log(`[CASE_OUTCOME_REMINDER] Looking for mediations completed on ${fortyEightHoursAgo.format('YYYY-MM-DD')}`);
 
