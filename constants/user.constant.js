@@ -1,4 +1,10 @@
 const MEDIATORS = {
+  KATIE_BAIN: {
+    // Production
+    email: "kbain@bmdlegal.com",
+    user_id: "42661ebb-c28e-481b-87bc-be7f3e5e96ec",
+  },
+
   ARI_SLIFFMAN: {
     // Production
     email: "asliffman@ajsresolutions.com",

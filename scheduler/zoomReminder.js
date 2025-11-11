@@ -39,22 +39,32 @@ async function getMediator() {
     // .eq("email", "hiqbal@bearplex.com");
 
     if (error) {
-      console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] Failed to fetch mediators:`, error);
+      console.error(
+        `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] Failed to fetch mediators:`,
+        error
+      );
       return [];
     }
 
     if (!data || data.length === 0) {
-      console.warn(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [WARNING] No mediators found`);
+      console.warn(
+        `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [WARNING] No mediators found`
+      );
       return [];
     }
 
-    console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] Fetched ${data.length} mediators`);
+    console.log(
+      `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] Fetched ${data.length} mediators`
+    );
     return data;
   } catch (err) {
-    console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [CRITICAL] Unexpected error in getMediator:`, {
-      message: err.message,
-      stack: err.stack,
-    });
+    console.error(
+      `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [CRITICAL] Unexpected error in getMediator:`,
+      {
+        message: err.message,
+        stack: err.stack,
+      }
+    );
     return [];
   }
 }
@@ -67,11 +77,16 @@ async function getMediator() {
 async function getMediatorCases(mediatorId) {
   try {
     if (!mediatorId) {
-      console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] getMediatorCases called with invalid mediatorId`);
+      console.error(
+        `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] getMediatorCases called with invalid mediatorId`
+      );
       return [];
     }
 
-    const oneDayAfter = dayjs.utc().add(ZOOM_REMINDER_CONFIG.DAYS_BEFORE_MEDIATION, "day").format("YYYY-MM-DD");
+    const oneDayAfter = dayjs
+      .utc()
+      .add(ZOOM_REMINDER_CONFIG.DAYS_BEFORE_MEDIATION, "day")
+      .format("YYYY-MM-DD");
 
     const filters = [
       { column: "mediation_date", value: oneDayAfter },
@@ -86,17 +101,24 @@ async function getMediatorCases(mediatorId) {
     );
 
     if (!cases || cases.length === 0) {
-      console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [INFO] No cases found for mediator ${mediatorId} on ${oneDayAfter}`);
+      console.log(
+        `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [INFO] No cases found for mediator ${mediatorId} on ${oneDayAfter}`
+      );
       return [];
     }
 
-    console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] Found ${cases.length} case(s) for mediator ${mediatorId}`);
+    console.log(
+      `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] Found ${cases.length} case(s) for mediator ${mediatorId}`
+    );
     return cases;
   } catch (err) {
-    console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] Failed to fetch cases for mediator ${mediatorId}:`, {
-      message: err.message,
-      stack: err.stack,
-    });
+    console.error(
+      `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] Failed to fetch cases for mediator ${mediatorId}:`,
+      {
+        message: err.message,
+        stack: err.stack,
+      }
+    );
     return [];
   }
 }
@@ -108,8 +130,8 @@ async function getMediatorCases(mediatorId) {
  * @returns {Object} { isValid: boolean, missingFields: Array<string> }
  */
 function validateEmailData(data, requiredFields) {
-  const missingFields = requiredFields.filter(field => {
-    const value = field.split('.').reduce((obj, key) => obj?.[key], data);
+  const missingFields = requiredFields.filter((field) => {
+    const value = field.split(".").reduce((obj, key) => obj?.[key], data);
     return !value;
   });
 
@@ -126,26 +148,53 @@ function validateEmailData(data, requiredFields) {
  * @param {string} icsCalendarData - ICS calendar file content
  * @returns {Promise<Object>} { success: boolean, error?: string }
  */
-async function formatAndSendEmailForMediator(mediator, caseData, icsCalendarData) {
+async function formatAndSendEmailForMediator(
+  mediator,
+  caseData,
+  icsCalendarData
+) {
   const logContext = `Case ${caseData?.id} - Mediator ${mediator?.email}`;
 
   try {
     // Validate required data
-    const validation = validateEmailData(mediator, ['email', 'first_name', 'last_name']);
+    const validation = validateEmailData(mediator, [
+      "email",
+      "first_name",
+      "last_name",
+    ]);
     if (!validation.isValid) {
-      throw new Error(`Missing required mediator fields: ${validation.missingFields.join(', ')}`);
+      throw new Error(
+        `Missing required mediator fields: ${validation.missingFields.join(
+          ", "
+        )}`
+      );
     }
 
-    const caseValidation = validateEmailData(caseData, ['mediation_date', 'zoom_link', 'case_schedule_time']);
+    const caseValidation = validateEmailData(caseData, [
+      "mediation_date",
+      "zoom_link",
+      "case_schedule_time",
+    ]);
     if (!caseValidation.isValid) {
-      throw new Error(`Missing required case fields: ${caseValidation.missingFields.join(', ')}`);
+      throw new Error(
+        `Missing required case fields: ${caseValidation.missingFields.join(
+          ", "
+        )}`
+      );
     }
 
     const baseData = {
       mediatorName: `${mediator.first_name} ${mediator.last_name}`,
-      dateAndTime: `${dayjs.utc(caseData.mediation_date).format("MMMM DD, YYYY")} at ${convertToAMPM(caseData.case_schedule_time)}`,
+      dateAndTime: `${dayjs
+        .utc(caseData.mediation_date)
+        .format("MMMM DD, YYYY")} at ${convertToAMPM(
+        caseData.case_schedule_time
+      )}`,
       zoomURL: caseData.zoom_link,
-      caseTitle: getFullCaseName(caseData.case_name, caseData.additional_case_names),
+      caseTitle: getFullCaseName(
+        caseData.case_name,
+        caseData.additional_case_names
+      ),
       caseNumber: caseData.case_number || "N/A",
       is_odr_mediator: mediator.is_odr_mediator || false,
       calenderBlob: icsCalendarData,
@@ -156,13 +205,18 @@ async function formatAndSendEmailForMediator(mediator, caseData, icsCalendarData
 
     await sendZoomEmailReminderForMediators(baseData);
 
-    console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] ${logContext} - Email sent successfully`);
+    console.log(
+      `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] ${logContext} - Email sent successfully`
+    );
     return { success: true };
   } catch (error) {
-    console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [FAILED] ${logContext}:`, {
-      message: error.message,
-      stack: error.stack,
-    });
+    console.error(
+      `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [FAILED] ${logContext}:`,
+      {
+        message: error.message,
+        stack: error.stack,
+      }
+    );
     return { success: false, error: error.message };
   }
 }
@@ -176,32 +230,64 @@ async function formatAndSendEmailForMediator(mediator, caseData, icsCalendarData
  * @param {Object|null} emailLog - Email log data for database tracking
  * @returns {Promise<Object>} { success: boolean, error?: string }
  */
-async function formatAndSendEmail(mediator, caseData, client, icsCalendarData, emailLog = null) {
+async function formatAndSendEmail(
+  mediator,
+  caseData,
+  client,
+  icsCalendarData,
+  emailLog = null
+) {
   const logContext = `Case ${caseData?.id} - Client ${client?.email}`;
 
   try {
     // Validate required data
-    const validation = validateEmailData(client, ['email', 'name']);
+    const validation = validateEmailData(client, ["email", "name"]);
     if (!validation.isValid) {
-      throw new Error(`Missing required client fields: ${validation.missingFields.join(', ')}`);
+      throw new Error(
+        `Missing required client fields: ${validation.missingFields.join(", ")}`
+      );
     }
 
-    const mediatorValidation = validateEmailData(mediator, ['first_name', 'last_name', 'email']);
+    const mediatorValidation = validateEmailData(mediator, [
+      "first_name",
+      "last_name",
+      "email",
+    ]);
     if (!mediatorValidation.isValid) {
-      throw new Error(`Missing required mediator fields: ${mediatorValidation.missingFields.join(', ')}`);
+      throw new Error(
+        `Missing required mediator fields: ${mediatorValidation.missingFields.join(
+          ", "
+        )}`
+      );
     }
 
-    const caseValidation = validateEmailData(caseData, ['mediation_date', 'zoom_link', 'case_schedule_time', 'id']);
+    const caseValidation = validateEmailData(caseData, [
+      "mediation_date",
+      "zoom_link",
+      "case_schedule_time",
+      "id",
+    ]);
     if (!caseValidation.isValid) {
-      throw new Error(`Missing required case fields: ${caseValidation.missingFields.join(', ')}`);
+      throw new Error(
+        `Missing required case fields: ${caseValidation.missingFields.join(
+          ", "
+        )}`
+      );
     }
 
     const baseData = {
       name: client.name,
       mediatorName: `${mediator.first_name} ${mediator.last_name}`,
-      dateAndTime: `${dayjs.utc(caseData.mediation_date).format("MMMM DD, YYYY")} at ${convertToAMPM(caseData.case_schedule_time)}`,
+      dateAndTime: `${dayjs
+        .utc(caseData.mediation_date)
+        .format("MMMM DD, YYYY")} at ${convertToAMPM(
+        caseData.case_schedule_time
+      )}`,
       zoomURL: caseData.zoom_link,
-      caseTitle: getFullCaseName(caseData.case_name, caseData.additional_case_names),
+      caseTitle: getFullCaseName(
+        caseData.case_name,
+        caseData.additional_case_names
+      ),
       caseNumber: caseData.case_number || "N/A",
       is_odr_mediator: mediator.is_odr_mediator || false,
       calenderBlob: icsCalendarData,
@@ -210,9 +296,10 @@ async function formatAndSendEmail(mediator, caseData, client, icsCalendarData, e
     };
 
     // Find alternate emails from participants
-    const alternateEmails = caseData?.participants?.find(
-      (x) => x.client_id === client.client_id && x.email === client.email
-    )?.alternate_emails || [];
+    const alternateEmails =
+      caseData?.participants?.find(
+        (x) => x.client_id === client.client_id && x.email === client.email
+      )?.alternate_emails || [];
 
     console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SENDING] ${logContext}`, {
       hasAlternateEmails: alternateEmails.length > 0,
@@ -221,7 +308,9 @@ async function formatAndSendEmail(mediator, caseData, client, icsCalendarData, e
 
     // Send primary email
     await sendZoomEmailReminder({ ...baseData, email: client.email }, emailLog);
-    console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] ${logContext} - Primary email sent`);
+    console.log(
+      `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] ${logContext} - Primary email sent`
+    );
 
     // Send to alternate emails
     let alternateSuccessCount = 0;
@@ -232,10 +321,15 @@ async function formatAndSendEmail(mediator, caseData, client, icsCalendarData, e
         try {
           await sendZoomEmailReminder({ ...baseData, email: alternateEmail });
           alternateSuccessCount++;
-          console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] ${logContext} - Alternate email sent to ${alternateEmail}`);
+          console.log(
+            `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] ${logContext} - Alternate email sent to ${alternateEmail}`
+          );
         } catch (altError) {
           alternateFailCount++;
-          console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [FAILED] ${logContext} - Alternate email to ${alternateEmail}:`, altError.message);
+          console.error(
+            `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [FAILED] ${logContext} - Alternate email to ${alternateEmail}:`,
+            altError.message
+          );
         }
       }
     }
@@ -244,31 +338,43 @@ async function formatAndSendEmail(mediator, caseData, client, icsCalendarData, e
     let ccSuccessCount = 0;
     let ccFailCount = 0;
 
-    if (mediator?.email_cc && Array.isArray(mediator.email_cc) && mediator.email_cc.length > 0) {
+    if (
+      mediator?.email_cc &&
+      Array.isArray(mediator.email_cc) &&
+      mediator.email_cc.length > 0
+    ) {
       for (const ccEmail of mediator.email_cc) {
         try {
           await sendZoomEmailReminder({ ...baseData, email: ccEmail });
           ccSuccessCount++;
-          console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] ${logContext} - CC email sent to ${ccEmail}`);
+          console.log(
+            `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] ${logContext} - CC email sent to ${ccEmail}`
+          );
         } catch (ccError) {
           ccFailCount++;
-          console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [FAILED] ${logContext} - CC email to ${ccEmail}:`, ccError.message);
+          console.error(
+            `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [FAILED] ${logContext} - CC email to ${ccEmail}:`,
+            ccError.message
+          );
         }
       }
     }
 
     console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUMMARY] ${logContext}:`, {
-      primary: 'sent',
+      primary: "sent",
       alternates: `${alternateSuccessCount}/${alternateEmails.length} sent`,
       cc: `${ccSuccessCount}/${mediator?.email_cc?.length || 0} sent`,
     });
 
     return { success: true };
   } catch (error) {
-    console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [FAILED] ${logContext}:`, {
-      message: error.message,
-      stack: error.stack,
-    });
+    console.error(
+      `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [FAILED] ${logContext}:`,
+      {
+        message: error.message,
+        stack: error.stack,
+      }
+    );
     return { success: false, error: error.message };
   }
 }
@@ -282,28 +388,44 @@ async function formatAndSendEmail(mediator, caseData, client, icsCalendarData, e
  * @param {string} icsData - ICS calendar file content
  * @returns {Array<Function>} Array of email sending functions
  */
-function buildPartyEmailQueue(party, partyRoleKey, caseMediator, caseData, icsData) {
+function buildPartyEmailQueue(
+  party,
+  partyRoleKey,
+  caseMediator,
+  caseData,
+  icsData
+) {
   const emailQueue = [];
   const logPrefix = `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [buildPartyEmailQueue]`;
 
   try {
     if (!party?.client_id) {
-      console.log(`${logPrefix} [INFO] Case ${caseData?.id} - No ${partyRoleKey} data, skipping`);
+      console.log(
+        `${logPrefix} [INFO] Case ${caseData?.id} - No ${partyRoleKey} data, skipping`
+      );
       return emailQueue;
     }
 
     // Process participants (excluding primary party)
-    const participants = party?.participants?.filter(
-      ({ email }) => email !== party.email
-    ) || [];
+    const participants =
+      party?.participants?.filter(({ email }) => email !== party.email) || [];
 
     if (participants.length > 0) {
-      console.log(`${logPrefix} [INFO] Case ${caseData?.id} - Found ${participants.length} additional participant(s) for ${partyRoleKey}`);
+      console.log(
+        `${logPrefix} [INFO] Case ${caseData?.id} - Found ${participants.length} additional participant(s) for ${partyRoleKey}`
+      );
 
       for (const participant of participants) {
         emailQueue.push({
-          fn: () => formatAndSendEmail(caseMediator, caseData, participant, icsData, null),
-          type: 'participant',
+          fn: () =>
+            formatAndSendEmail(
+              caseMediator,
+              caseData,
+              participant,
+              icsData,
+              null
+            ),
+          type: "participant",
           email: participant.email,
           caseId: caseData.id,
         });
@@ -312,14 +434,15 @@ function buildPartyEmailQueue(party, partyRoleKey, caseMediator, caseData, icsDa
 
     // Process primary party
     emailQueue.push({
-      fn: () => formatAndSendEmail(caseMediator, caseData, party, icsData, {
-        [`${partyRoleKey}_id`]: party.client_id,
-        case_id: caseData.id,
-        type: "zoom",
-        mediator: caseMediator?.mediator_id,
-        event: "Zoom Reminder Sent.",
-      }),
-      type: 'primary',
+      fn: () =>
+        formatAndSendEmail(caseMediator, caseData, party, icsData, {
+          [`${partyRoleKey}_id`]: party.client_id,
+          case_id: caseData.id,
+          type: "zoom",
+          mediator: caseMediator?.mediator_id,
+          event: "Zoom Reminder Sent.",
+        }),
+      type: "primary",
       email: party.email,
       caseId: caseData.id,
     });
@@ -328,18 +451,32 @@ function buildPartyEmailQueue(party, partyRoleKey, caseMediator, caseData, icsDa
     const additionalParties = party?.additionalParties || [];
 
     if (additionalParties.length > 0) {
-      console.log(`${logPrefix} [INFO] Case ${caseData?.id} - Found ${additionalParties.length} additional part${additionalParties.length > 1 ? 'ies' : 'y'} for ${partyRoleKey}`);
+      console.log(
+        `${logPrefix} [INFO] Case ${caseData?.id} - Found ${
+          additionalParties.length
+        } additional part${
+          additionalParties.length > 1 ? "ies" : "y"
+        } for ${partyRoleKey}`
+      );
 
       for (const additionalParty of additionalParties) {
         // Process participants of additional party
-        const additionalParticipants = additionalParty?.participants?.filter(
-          ({ email }) => email !== additionalParty.email
-        ) || [];
+        const additionalParticipants =
+          additionalParty?.participants?.filter(
+            ({ email }) => email !== additionalParty.email
+          ) || [];
 
         for (const participant of additionalParticipants) {
           emailQueue.push({
-            fn: () => formatAndSendEmail(caseMediator, caseData, participant, icsData, null),
-            type: 'additional_participant',
+            fn: () =>
+              formatAndSendEmail(
+                caseMediator,
+                caseData,
+                participant,
+                icsData,
+                null
+              ),
+            type: "additional_participant",
             email: participant.email,
             caseId: caseData.id,
           });
@@ -347,30 +484,44 @@ function buildPartyEmailQueue(party, partyRoleKey, caseMediator, caseData, icsDa
 
         // Process additional party itself
         emailQueue.push({
-          fn: () => formatAndSendEmail(caseMediator, caseData, additionalParty, icsData, {
-            [`${getPrimaryAccessorByRole(additionalParty.role)}`]:
-              additionalParty.primary_party_id ?? additionalParty.client_id,
-            additional_client_id:
-              additionalParty.primary_party_id !== null ? additionalParty.client_id : null,
-            case_id: caseData.id,
-            type: "zoom",
-            mediator: caseMediator?.mediator_id,
-            event: "Zoom Reminder Sent.",
-          }),
-          type: 'additional_party',
+          fn: () =>
+            formatAndSendEmail(
+              caseMediator,
+              caseData,
+              additionalParty,
+              icsData,
+              {
+                [`${getPrimaryAccessorByRole(additionalParty.role)}`]:
+                  additionalParty.primary_party_id ?? additionalParty.client_id,
+                additional_client_id:
+                  additionalParty.primary_party_id !== null
+                    ? additionalParty.client_id
+                    : null,
+                case_id: caseData.id,
+                type: "zoom",
+                mediator: caseMediator?.mediator_id,
+                event: "Zoom Reminder Sent.",
+              }
+            ),
+          type: "additional_party",
           email: additionalParty.email,
           caseId: caseData.id,
         });
       }
     }
 
-    console.log(`${logPrefix} [SUCCESS] Case ${caseData?.id} - Built queue with ${emailQueue.length} email(s) for ${partyRoleKey}`);
+    console.log(
+      `${logPrefix} [SUCCESS] Case ${caseData?.id} - Built queue with ${emailQueue.length} email(s) for ${partyRoleKey}`
+    );
     return emailQueue;
   } catch (err) {
-    console.error(`${logPrefix} [ERROR] Case ${caseData?.id} - Failed to build email queue for ${partyRoleKey}:`, {
-      message: err.message,
-      stack: err.stack,
-    });
+    console.error(
+      `${logPrefix} [ERROR] Case ${caseData?.id} - Failed to build email queue for ${partyRoleKey}:`,
+      {
+        message: err.message,
+        stack: err.stack,
+      }
+    );
     return emailQueue;
   }
 }
@@ -379,7 +530,7 @@ function buildPartyEmailQueue(party, partyRoleKey, caseMediator, caseData, icsDa
  * Main function to send zoom reminders for all cases
  * @returns {Promise<Object>} Summary of processing results
  */
-async function sendZoomReminders() {
+async function sendZoomRemindersToMediators() {
   const startTime = dayjs.utc();
   const summary = {
     totalMediators: 0,
@@ -392,36 +543,54 @@ async function sendZoomReminders() {
     errors: [],
   };
 
-  console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} ===== ZOOM REMINDER JOB STARTED =====`);
-  console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [INFO] Job started at ${startTime.format('YYYY-MM-DD HH:mm:ss')} UTC`);
+  console.log(
+    `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} ===== ZOOM REMINDER JOB STARTED =====`
+  );
+  console.log(
+    `${
+      ZOOM_REMINDER_CONFIG.LOG_PREFIX
+    } [INFO] Job started at ${startTime.format("YYYY-MM-DD HH:mm:ss")} UTC`
+  );
 
   try {
     const mediators = await getMediator();
     summary.totalMediators = mediators.length;
 
     if (mediators.length === 0) {
-      console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [WARNING] No mediators to process, exiting`);
+      console.log(
+        `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [WARNING] No mediators to process, exiting`
+      );
       return summary;
     }
 
     for (const mediator of mediators) {
       try {
-        console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [PROCESSING] Mediator: ${mediator.email}`);
+        console.log(
+          `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [PROCESSING] Mediator: ${mediator.email}`
+        );
 
         const mediatorCases = await getMediatorCases(mediator?.user_id);
         summary.totalCases += mediatorCases.length;
 
         if (mediatorCases.length === 0) {
-          console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [INFO] No cases for mediator ${mediator.email}`);
+          console.log(
+            `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [INFO] No cases for mediator ${mediator.email}`
+          );
           summary.processedMediators++;
           continue;
         }
 
         for (const caseData of mediatorCases) {
           try {
-            console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [PROCESSING] Case ${caseData.id} for mediator ${mediator.email}`);
+            console.log(
+              `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [PROCESSING] Case ${caseData.id} for mediator ${mediator.email}`
+            );
 
-            const { plaintiff, defendant, mediator_id: caseMediator } = caseData;
+            const {
+              plaintiff,
+              defendant,
+              mediator_id: caseMediator,
+            } = caseData;
 
             // Validate case mediator data
             if (!caseMediator) {
@@ -437,7 +606,10 @@ async function sendZoomReminders() {
                 mediator?.mediator_settings
               );
             } catch (icsError) {
-              console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] Failed to generate ICS file for case ${caseData.id}:`, icsError.message);
+              console.error(
+                `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] Failed to generate ICS file for case ${caseData.id}:`,
+                icsError.message
+              );
               throw new Error(`ICS generation failed: ${icsError.message}`);
             }
 
@@ -445,28 +617,45 @@ async function sendZoomReminders() {
             const emailQueue = [];
 
             // Process plaintiff
-            const plaintiffQueue = buildPartyEmailQueue(plaintiff, "plaintiff", caseMediator, caseData, icsData);
+            const plaintiffQueue = buildPartyEmailQueue(
+              plaintiff,
+              "plaintiff",
+              caseMediator,
+              caseData,
+              icsData
+            );
             emailQueue.push(...plaintiffQueue);
 
             // Process defendant
-            const defendantQueue = buildPartyEmailQueue(defendant, "defender", caseMediator, caseData, icsData);
+            const defendantQueue = buildPartyEmailQueue(
+              defendant,
+              "defender",
+              caseMediator,
+              caseData,
+              icsData
+            );
             emailQueue.push(...defendantQueue);
 
             // Add mediator email
             emailQueue.push({
-              fn: () => formatAndSendEmailForMediator(caseMediator, caseData, icsData),
-              type: 'mediator',
+              fn: () =>
+                formatAndSendEmailForMediator(caseMediator, caseData, icsData),
+              type: "mediator",
               email: caseMediator.email,
               caseId: caseData.id,
             });
 
             summary.totalEmails += emailQueue.length;
-            console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [INFO] Case ${caseData.id} - Queued ${emailQueue.length} email(s)`);
+            console.log(
+              `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [INFO] Case ${caseData.id} - Queued ${emailQueue.length} email(s)`
+            );
 
             // Execute email queue with proper error handling
             for (const item of emailQueue) {
               try {
-                console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SENDING] Case ${item.caseId} - ${item.type} - ${item.email}`);
+                console.log(
+                  `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SENDING] Case ${item.caseId} - ${item.type} - ${item.email}`
+                );
 
                 const result = await item.fn();
 
@@ -491,20 +680,28 @@ async function sendZoomReminders() {
                   type: item.type,
                   error: emailError.message,
                 });
-                console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [FAILED] Case ${item.caseId} - ${item.type} - ${item.email}:`, {
-                  message: emailError.message,
-                  stack: emailError.stack,
-                });
+                console.error(
+                  `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [FAILED] Case ${item.caseId} - ${item.type} - ${item.email}:`,
+                  {
+                    message: emailError.message,
+                    stack: emailError.stack,
+                  }
+                );
               }
             }
 
             summary.processedCases++;
-            console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] Case ${caseData.id} processed successfully`);
+            console.log(
+              `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] Case ${caseData.id} processed successfully`
+            );
           } catch (caseError) {
-            console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] Failed to process case ${caseData.id}:`, {
-              message: caseError.message,
-              stack: caseError.stack,
-            });
+            console.error(
+              `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] Failed to process case ${caseData.id}:`,
+              {
+                message: caseError.message,
+                stack: caseError.stack,
+              }
+            );
             summary.errors.push({
               caseId: caseData.id,
               error: caseError.message,
@@ -513,12 +710,17 @@ async function sendZoomReminders() {
         }
 
         summary.processedMediators++;
-        console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] Completed processing mediator ${mediator.email}`);
+        console.log(
+          `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUCCESS] Completed processing mediator ${mediator.email}`
+        );
       } catch (mediatorError) {
-        console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] Failed to process mediator ${mediator.email}:`, {
-          message: mediatorError.message,
-          stack: mediatorError.stack,
-        });
+        console.error(
+          `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERROR] Failed to process mediator ${mediator.email}:`,
+          {
+            message: mediatorError.message,
+            stack: mediatorError.stack,
+          }
+        );
         summary.errors.push({
           mediator: mediator.email,
           error: mediatorError.message,
@@ -527,13 +729,19 @@ async function sendZoomReminders() {
     }
 
     const endTime = dayjs.utc();
-    const duration = endTime.diff(startTime, 'second', true).toFixed(2);
+    const duration = endTime.diff(startTime, "second", true).toFixed(2);
 
-    console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} ===== ZOOM REMINDER JOB COMPLETED =====`);
-    console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [INFO] Job completed at ${endTime.format('YYYY-MM-DD HH:mm:ss')} UTC`);
+    console.log(
+      `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} ===== ZOOM REMINDER JOB COMPLETED =====`
+    );
+    console.log(
+      `${
+        ZOOM_REMINDER_CONFIG.LOG_PREFIX
+      } [INFO] Job completed at ${endTime.format("YYYY-MM-DD HH:mm:ss")} UTC`
+    );
     console.log(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [SUMMARY]`, {
-      startTime: startTime.format('YYYY-MM-DD HH:mm:ss UTC'),
-      endTime: endTime.format('YYYY-MM-DD HH:mm:ss UTC'),
+      startTime: startTime.format("YYYY-MM-DD HH:mm:ss UTC"),
+      endTime: endTime.format("YYYY-MM-DD HH:mm:ss UTC"),
       duration: `${duration}s`,
       mediators: `${summary.processedMediators}/${summary.totalMediators}`,
       cases: `${summary.processedCases}/${summary.totalCases}`,
@@ -543,20 +751,28 @@ async function sendZoomReminders() {
     });
 
     if (summary.errors.length > 0) {
-      console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERRORS] ${summary.errors.length} error(s) occurred:`,
+      console.error(
+        `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERRORS] ${summary.errors.length} error(s) occurred:`,
         summary.errors.slice(0, 10) // Log first 10 errors
       );
       if (summary.errors.length > 10) {
-        console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERRORS] ... and ${summary.errors.length - 10} more errors`);
+        console.error(
+          `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [ERRORS] ... and ${
+            summary.errors.length - 10
+          } more errors`
+        );
       }
     }
 
     return summary;
   } catch (error) {
-    console.error(`${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [CRITICAL] Job failed with critical error:`, {
-      message: error.message,
-      stack: error.stack,
-    });
+    console.error(
+      `${ZOOM_REMINDER_CONFIG.LOG_PREFIX} [CRITICAL] Job failed with critical error:`,
+      {
+        message: error.message,
+        stack: error.stack,
+      }
+    );
 
     summary.errors.push({
       critical: true,
@@ -567,8 +783,8 @@ async function sendZoomReminders() {
   }
 }
 
-// sendZoomReminders()
+// sendZoomRemindersToMediators()
 
 module.exports = {
-  sendZoomReminders,
+  sendZoomRemindersToMediators,
 };

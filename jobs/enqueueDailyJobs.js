@@ -15,10 +15,14 @@ const {
 const {
   hourlyInvoicesReminder,
 } = require("../scheduler/hourlyInvoicesReminder");
-const { crmNotificationToMediator } = require("../scheduler/crmNotificationToMediator");
+const {
+  crmNotificationToMediator,
+} = require("../scheduler/crmNotificationToMediator");
 const { weeklyMediationRecap } = require("../scheduler/weeklyMediationsRecap");
-const { sendZoomReminders } = require("../scheduler/zoomReminder");
-const { caseOutcomeReportReminder } = require("../scheduler/caseOutcomeReportReminder");
+const { sendZoomRemindersToMediators } = require("../scheduler/zoomReminder");
+const {
+  caseOutcomeReportReminder,
+} = require("../scheduler/caseOutcomeReportReminder");
 
 async function runAllPaymentReminders() {
   await defendentReminders();
@@ -31,18 +35,17 @@ const jobs = [
   { name: "onboarding-reminder", fn: sendOnboardingReminders },
   { name: "brief-reminder", fn: sendBriefReminders },
   { name: "payment-reminder", fn: runAllPaymentReminders },
-  // //
-  // //
-  { name: "zoom-reminder", fn: sendZoomReminders },
-  // //
+
   // //
   { name: "hourly-invoices-reminder", fn: hourlyInvoicesReminder },
   // //
+
   // //
-  // // All Mediator only 
+  // // All Mediator only
   { name: "weekly-mediations-recap", fn: weeklyMediationRecap },
   { name: "crm-notification-to-mediator", fn: crmNotificationToMediator },
   { name: "case-outcome-report-reminder", fn: caseOutcomeReportReminder },
+  { name: "zoom-reminder", fn: sendZoomRemindersToMediators },
   //
   //
   // // ODR Mediators Only
