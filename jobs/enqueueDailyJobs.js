@@ -23,6 +23,9 @@ const { sendZoomRemindersToMediators } = require("../scheduler/zoomReminder");
 const {
   caseOutcomeReportReminder,
 } = require("../scheduler/caseOutcomeReportReminder");
+const {
+  refreshZoomTokensForAllMediators,
+} = require("../scheduler/zoomRefreshToken");
 
 async function runAllPaymentReminders() {
   await defendentReminders();
@@ -86,9 +89,30 @@ console.log(
 );
 
 if (process.env.NODE_ENV === "production") {
+  // Existing reminder jobs at 6PM UTC
   cron.schedule("0 18 * * *", enqueueRemindersSequentially, {
     scheduled: true,
     timezone: "UTC",
   });
   // enqueueRemindersSequentially();
+
+  // Separate Zoom token refresh job at 5PM UTC
+  cron.schedule(
+    "0 17 * * *",
+    async () => {
+      console.log("[ZOOM_REFRESH_TOKEN] Starting zoom-refresh-token cron job");
+      try {
+        await refreshZoomTokensForAllMediators();
+      } catch (error) {
+        console.error(
+          "[ZOOM_REFRESH_TOKEN] Error in zoom-refresh-token cron job:",
+          error
+        );
+      }
+    },
+    {
+      scheduled: true,
+      timezone: "UTC",
+    }
+  );
 }
