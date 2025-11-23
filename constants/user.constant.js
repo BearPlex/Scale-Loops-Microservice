@@ -5,6 +5,12 @@ const MEDIATORS = {
     user_id: "42661ebb-c28e-481b-87bc-be7f3e5e96ec",
   },
 
+  LORI_DOBRIN: {
+    // Production
+    email: "loridobrin@gmail.com",
+    user_id: "8d77b720-f603-40ba-a90b-2aeaa43278d7",
+  },
+
   ARI_SLIFFMAN: {
     // Production
     email: "asliffman@ajsresolutions.com",

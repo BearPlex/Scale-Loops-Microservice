@@ -326,7 +326,8 @@ async function sendOnboardingEmailReminder(payload, emailLog = null) {
     const { payload: emailPayload, transcationId } =
       customMediator?.email &&
       customMediator?.ONBOARDING_REMINDER_TO_PARTY_CUSTOM_MEDIATOR &&
-      typeof customMediator?.ONBOARDING_REMINDER_TO_PARTY_CUSTOM_MEDIATOR === "function"
+      typeof customMediator?.ONBOARDING_REMINDER_TO_PARTY_CUSTOM_MEDIATOR ===
+        "function"
         ? customMediator.ONBOARDING_REMINDER_TO_PARTY_CUSTOM_MEDIATOR({
             name,
             mediatorName,
@@ -398,30 +399,52 @@ async function sendPaymentsReminders(payload, reminderArr = null) {
     caseNumber,
     mediationDateAndTime,
     case_id,
+    mediator_user_id,
   } = payload;
 
   const caseData = await findCaseById(case_id, "*,mediator:mediator_id(*)");
 
-  const data = {
-    transactionalId: caseData?.mediator?.is_odr_mediator
-      ? LOOPS_EMAIL_TRANSACTIONAL_IDS.PAYMENT_INVOICE_REMINDER_FOR_ODR_MEDIATOR
-      : LOOPS_EMAIL_TRANSACTIONAL_IDS.PAYMENT_INVOICE_REMINDER_FOR_MEDIATOR,
+  const customMediator = CUSTOM_MEDIATORS_EMAILS?.[mediator_user_id];
 
+  const { payload: emailPayload, transcationId } =
+    customMediator?.email &&
+    customMediator?.PAYMENT_INVOICE_REMINDER_TO_PARTY &&
+    typeof customMediator?.PAYMENT_INVOICE_REMINDER_TO_PARTY === "function"
+      ? customMediator.PAYMENT_INVOICE_REMINDER_TO_PARTY({
+          name,
+          totalDue,
+          dueDate,
+          paymentURL,
+          mediatorName,
+          mediatorEmail,
+          caseTitle,
+          caseNumber,
+          mediationDateAndTime,
+        })
+      : {
+          payload: {
+            name,
+            totalDue,
+            dueDate,
+            paymentURL: paymentURL ? paymentURL : " ",
+            mediatorName,
+            mediatorEmail,
+            caseTitle,
+            mediationDateAndTime,
+            ...(!caseData?.mediator?.is_odr_mediator && {
+              caseNumber: caseNumber || "N/A",
+              zoomLink: caseData?.zoom_link || "N/A",
+            }),
+          },
+          transactionalId: caseData?.mediator?.is_odr_mediator
+            ? LOOPS_EMAIL_TRANSACTIONAL_IDS.PAYMENT_INVOICE_REMINDER_FOR_ODR_MEDIATOR
+            : LOOPS_EMAIL_TRANSACTIONAL_IDS.PAYMENT_INVOICE_REMINDER_FOR_MEDIATOR,
+        };
+
+  const data = {
     email,
-    dataVariables: {
-      name,
-      totalDue,
-      dueDate,
-      paymentURL: paymentURL ? paymentURL : " ",
-      mediatorName,
-      mediatorEmail,
-      caseTitle,
-      mediationDateAndTime,
-      ...(!caseData?.mediator?.is_odr_mediator && {
-        caseNumber: caseNumber || "N/A",
-        zoomLink: caseData?.zoom_link || "N/A",
-      }),
-    },
+    transactionalId: transcationId,
+    dataVariables: emailPayload,
   };
 
   try {
@@ -512,6 +535,7 @@ async function sendBriefEmailReminder(payload, emailLog = null) {
             dateAndTime,
             mediatorEmail,
             onboardingURL,
+            zoomLink: zoomLink || "N/A",
           })
         : {
             payload: {

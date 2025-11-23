@@ -26,7 +26,7 @@ const { CASE_STATUS } = require("../constants/constant");
 
 async function getMediator() {
   const { data, error } = await supabase.from("mediators").select("*");
-  // .eq("email", "eric@resolvewannon.com");
+  // .eq("email", "hiqbal@bearplex.com");
 
   if (error) {
     return [];
@@ -85,8 +85,8 @@ const sendPaymentEmail = async (caseData, partyData, reminderArr = null) => {
       dueDate:
         remainingDueDays <= 0
           ? moment(partyData?.onboarding?.created_at)
-            .startOf("day")
-            .format("MMMM DD, YYYY")
+              .startOf("day")
+              .format("MMMM DD, YYYY")
           : moment(xDaysAfterOnBoarding).startOf("day").format("MMMM DD, YYYY"),
       caseNumber: caseData?.case_number || "N/A",
       caseTitle: getFullCaseName(
@@ -99,10 +99,12 @@ const sendPaymentEmail = async (caseData, partyData, reminderArr = null) => {
         partyData?.payment?.invoice_id === null
           ? partyData?.payment?.payment_url
           : generateInvoiceUrlFrontend(
-            partyData?.payment?.invoice_id,
-            caseData?.mediator_id?.user_id
-          ),
+              partyData?.payment?.invoice_id,
+              caseData?.mediator_id?.user_id
+            ),
       mediatorEmail: caseData?.mediator_id?.email,
+
+      mediator_user_id: caseData?.mediator_id?.user_id,
     };
 
     await sendPaymentsReminders(
@@ -156,18 +158,20 @@ const getAllRecordOfParty = (
   is_additional_party = false,
   additional_party_id = null
 ) => {
-  console.log(`[getAllRecordOfParty] Accessing caseData["${partyType}"]`, {
-    partyType,
-    availableKeys: Object.keys(caseData),
-    hasPlaintiff: !!caseData.plaintiff,
-    hasDefendant: !!caseData.defendant,
-    exists: !!caseData[partyType]
-  });
+  // console.log(`[getAllRecordOfParty] Accessing caseData["${partyType}"]`, {
+  //   partyType,
+  //   availableKeys: Object.keys(caseData),
+  //   hasPlaintiff: !!caseData.plaintiff,
+  //   hasDefendant: !!caseData.defendant,
+  //   exists: !!caseData[partyType],
+  // });
 
   const primaryData = caseData[partyType];
 
   if (!primaryData) {
-    console.error(`[getAllRecordOfParty] primaryData is undefined for partyType: ${partyType}`);
+    console.error(
+      `[getAllRecordOfParty] primaryData is undefined for partyType: ${partyType}`
+    );
     return null;
   }
 
@@ -189,7 +193,7 @@ const getAllRecordOfParty = (
 
 async function sendReminders(forClient) {
   const today = moment().utc().startOf("day").format("YYYY-MM-DD");
-  // const today = "2025-08-21";
+  // const today = "2025-11-25";
 
   console.log("`payment-${forClient}`", `payment-${forClient}`);
 
@@ -242,18 +246,23 @@ async function sendReminders(forClient) {
             additionalParty?.id
           );
 
-          console.log(`[DEBUG] Case ${caseData.id} - ${forClient} - partyData:`, {
-            exists: !!partyData,
-            hasEmail: !!partyData?.email,
-            hasPayment: !!partyData?.payment,
-            email: partyData?.email,
-            name: partyData?.name,
-            role: partyData?.role,
-            paymentStatus: partyData?.payment?.status
-          });
+          console.log(
+            `[DEBUG] Case ${caseData.id} - ${forClient} - partyData:`,
+            {
+              exists: !!partyData,
+              hasEmail: !!partyData?.email,
+              hasPayment: !!partyData?.payment,
+              email: partyData?.email,
+              name: partyData?.name,
+              role: partyData?.role,
+              paymentStatus: partyData?.payment?.status,
+            }
+          );
 
           if (!partyData) {
-            console.error(`[ERROR] Case ${caseData.id} - partyData is null for ${forClient}`);
+            console.error(
+              `[ERROR] Case ${caseData.id} - partyData is null for ${forClient}`
+            );
             continue;
           }
 
@@ -288,12 +297,12 @@ async function sendReminders(forClient) {
                       )}/${totalReminders}`,
                       amount:
                         partyData?.payment?.grand_total &&
-                          partyData?.payment?.grand_total > 0
+                        partyData?.payment?.grand_total > 0
                           ? partyData?.payment?.grand_total
                           : partyData?.payment?.amount,
                       next_reminder:
                         nextReminderDate !== null &&
-                          nextReminderDate !== undefined
+                        nextReminderDate !== undefined
                           ? moment(nextReminderDate).format("MMMM D,YYYY")
                           : null,
                       // created_at: "2025-08-21 18:01:24.099244+00",
@@ -330,7 +339,8 @@ async function sendReminders(forClient) {
         await Promise.all(markReminderPromises.map((fn) => fn()));
 
         console.log(
-          `Payment Reminders of ${`payment-${forClient}`} -> case_id (${caseData.id
+          `Payment Reminders of ${`payment-${forClient}`} -> case_id (${
+            caseData.id
           }) have been processed. Date: ${today}`
         );
       }

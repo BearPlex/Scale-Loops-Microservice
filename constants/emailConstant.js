@@ -65,6 +65,22 @@ const LOOPS_EMAIL_TRANSACTIONAL_IDS = {
   FATEEMAH_TRANSACTION_ID: {
     MEDIATION_SCHEDULE_EMAIL_TO_PARTY: "cmfozxibb3ih5xw0iauti1lbo",
   },
+
+  LORI_DOBRIN_LOOPS_EMAIL_TRANSACTION_ID: {
+    ONBOARDING_REMINDER_TO_PARTY_CUSTOM_MEDIATOR: "cmhyxmgyp07tywz0inzfzezt2",
+    BRIEF_REMINDER_TO_PARTY: "cmhyy1i550ck5ye0ii8ayvjbm",
+    PAYMENT_INVOICE_REMINDER_TO_PARTY: "cmhyxv1ua0cy3xe0hbfq4vch3",
+
+    // MEDIATION_MEETING_SCHEDULED: "cmhkldtovevjk380i922lnifk",
+    // HOURLY_INVOICE_TO_PARTY: "cmhkmixesiftx1u0i5k3ucv0y",
+    // HOURLY_INVOICE_REMINDER_TO_PARTY: "cmhkmdo3mi7v4zy0iwi2barr3",
+    // NEW_INVOICE_TO_PARTY_BY_CUSTOM_MEDIATOR: "cmhlwj7ey0ww01e0i4otknu9q",
+    // ZOOM_MEETING_SCHEDULED_TO_PARTY: "cmhkmg2jainb12p0iboew9z95",
+    // CASE_RESCHEDULED_TO_PARTY: "cmhkmngtsieuz3j0i99d38x43",
+    // ZOOM_LINK_REMINDER_TO_PARTY: "cmhkn645riom91g0jwv8ar9xm",
+    // DELETE_EMAIL_TO_PARTY: "cmhknfkikivpe0e0ixnf09w34",
+    // CANCEL_EMAIL_TO_PARTY: "cmhknd5x3it9z3j0i3xm92osm",
+  },
 };
 
 const LOOPS_EMAIL_TEMPLATE_NAME = {
@@ -115,6 +131,8 @@ const LOOPS_EMAIL_TEMPLATE_NAME = {
   ONBOARDING_REMINDER_FOR_MEDIATOR: "ONBOARDING_REMINDER_FOR_MEDIATOR",
 
   BRIEF_REMINDER_TO_PARTY: "BRIEF_REMINDER_TO_PARTY",
+
+  PAYMENT_INVOICE_REMINDER_TO_PARTY: "PAYMENT_INVOICE_REMINDER_TO_PARTY",
 
   RESCHEDULED_FOR_MEDIATOR: "RESCHEDULED_FOR_MEDIATOR",
   RESCHEDULED_FOR_ODR_MEDIATOR: "RESCHEDULED_FOR_ODR_MEDIATOR",
@@ -636,108 +654,51 @@ const CUSTOM_MEDIATORS_EMAILS = {
     },
   },
 
-  [`${MEDIATORS.ADAM_WANNON.user_id}`]: {
-    email: MEDIATORS.ADAM_WANNON.email,
+  [`${MEDIATORS.LORI_DOBRIN.user_id}`]: {
+    email: MEDIATORS.LORI_DOBRIN.email,
 
-    [`${LOOPS_EMAIL_TEMPLATE_NAME.HOURLY_INVOICE_REMINDER_TO_PARTY}`]: (
-      data = {}
-    ) => {
-      const payload = {
-        name: data?.name || "",
-        totalDue: data?.totalDue || "",
-        dueDate: data?.dueDate || "",
-        caseTitle: data?.caseTitle || "",
-        caseNumber: data?.caseNumber || "N/A",
-        mediationDateAndTime: data?.dateAndTime || "",
-        paymentURL: data?.paymentURL || "",
-        mediatorName: data?.mediatorName || "",
-        mediatorEmail: data?.mediatorEmail || "",
-      };
-      const transcationId =
-        LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
-          .HOURLY_INVOICE_REMINDER_TO_PARTY;
+    // [`${LOOPS_EMAIL_TEMPLATE_NAME.HOURLY_INVOICE_REMINDER_TO_PARTY}`]: (
+    //   data = {}
+    // ) => {
+    //   const payload = {
+    //     name: data?.name || "",
+    //     totalDue: data?.totalDue || "",
+    //     dueDate: data?.dueDate || "",
+    //     caseTitle: data?.caseTitle || "",
+    //     caseNumber: data?.caseNumber || "N/A",
+    //     mediationDateAndTime: data?.dateAndTime || "",
+    //     paymentURL: data?.paymentURL || "",
+    //     mediatorName: data?.mediatorName || "",
+    //     mediatorEmail: data?.mediatorEmail || "",
+    //   };
+    //   const transcationId =
+    //     LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
+    //       .HOURLY_INVOICE_REMINDER_TO_PARTY;
 
-      return { payload, transcationId };
-    },
+    //   return { payload, transcationId };
+    // },
 
-    [`${LOOPS_EMAIL_TEMPLATE_NAME.HOURLY_INVOICE_TO_PARTY}`]: (data = {}) => {
-      const payload = {
-        name: data?.name || "",
-        totalDue: data?.totalDue || "",
-        dueDate: data?.dueDate || "",
-        caseTitle: data?.caseTitle || "",
-        caseNumber: data?.caseNumber || "N/A",
-        dateAndTime: data?.dateAndTime || "",
-        paymentURL: data?.paymentURL || "",
-        mediatorName: data?.mediatorName || "",
-        mediatorEmail: data?.mediatorEmail || "",
-      };
-      const transcationId =
-        LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
-          .HOURLY_INVOICE_TO_PARTY;
+    // [`${LOOPS_EMAIL_TEMPLATE_NAME.NEW_INVOICE_TO_PARTY_BY_CUSTOM_MEDIATOR}`]: (
+    //   data
+    // ) => {
+    //   const payload = {
+    //     name: data?.name || "",
+    //     dateAndTime: data?.dateAndTime || "",
+    //     totalDue: data?.totalDue || "",
+    //     dueDate: data?.dueDate || "",
+    //     caseTitle: data?.caseTitle || "",
+    //     caseNumber: data?.caseNumber || "N/A",
+    //     zoomLink: data?.zoom_link || "N/A",
+    //     paymentURL: data?.paymentURL || "",
+    //     mediatorName: data?.mediatorName || "",
+    //     mediatorEmail: data?.mediatorEmail || "",
+    //   };
+    //   const transcationId =
+    //     LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
+    //       .NEW_INVOICE_TO_PARTY_BY_CUSTOM_MEDIATOR;
 
-      return { payload, transcationId };
-    },
-
-    [`${LOOPS_EMAIL_TEMPLATE_NAME.NEW_INVOICE_TO_PARTY_BY_CUSTOM_MEDIATOR}`]: (
-      data
-    ) => {
-      const payload = {
-        name: data?.name || "",
-        dateAndTime: data?.dateAndTime || "",
-        totalDue: data?.totalDue || "",
-        dueDate: data?.dueDate || "",
-        caseTitle: data?.caseTitle || "",
-        caseNumber: data?.caseNumber || "N/A",
-        zoomLink: data?.zoom_link || "N/A",
-        paymentURL: data?.paymentURL || "",
-        mediatorName: data?.mediatorName || "",
-        mediatorEmail: data?.mediatorEmail || "",
-      };
-      const transactionalId =
-        LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
-          .NEW_INVOICE_TO_PARTY_BY_CUSTOM_MEDIATOR;
-
-      return { payload, transactionalId, isInvoiceCreate: true };
-    },
-
-    [`${LOOPS_EMAIL_TEMPLATE_NAME.MEDIATION_SCHEDULE_EMAIL_TO_PARTY}`]: (
-      data = {}
-    ) => {
-      const payload = {
-        name: data?.name || "",
-        caseTitle: data?.caseTitle || "",
-        caseNumber: data?.caseNumber || "N/A",
-        dateAndTime: data?.dateAndTime || "",
-        onboardingURL: data?.onboardingURL || "",
-        mediatorName: data?.mediatorName || "",
-        mediatorEmail: data?.mediatorEmail || "",
-      };
-      const transcationId =
-        LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
-          .MEDIATION_MEETING_SCHEDULED;
-
-      return { payload, transcationId };
-    },
-
-    [`${LOOPS_EMAIL_TEMPLATE_NAME.RESCHEDULED_EMAIL_TO_PARTY}`]: (
-      data = {}
-    ) => {
-      const payload = {
-        name: data?.name || "",
-        caseTitle: data?.caseTitle || "",
-        caseNumber: data?.caseNumber || "N/A",
-        oldDateAndTime: data?.oldDateAndTime || "",
-        newDateAndtime: data?.newDateAndtime || "",
-        mediatorName: data?.mediatorName || "",
-        mediatorEmail: data?.mediatorEmail || "",
-      };
-      const transcationId =
-        LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
-          .CASE_RESCHEDULED_TO_PARTY;
-
-      return { payload, transcationId };
-    },
+    //   return { payload, transcationId, isInvoiceCreate: true };
+    // },
 
     [`${LOOPS_EMAIL_TEMPLATE_NAME.BRIEF_REMINDER_TO_PARTY}`]: (data = {}) => {
       const payload = {
@@ -745,12 +706,13 @@ const CUSTOM_MEDIATORS_EMAILS = {
         caseTitle: data?.caseTitle || " ",
         caseNumber: data?.caseNumber || "N/A",
         dateAndTime: data?.dateAndTime || " ",
+        zoomLink: data?.zoomLink || " ",
         onboardingURL: data?.onboardingURL || " ",
         mediatorName: data?.mediatorName || " ",
         mediatorEmail: data?.mediatorEmail || " ",
       };
       const transcationId =
-        LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
+        LOOPS_EMAIL_TRANSACTIONAL_IDS.LORI_DOBRIN_LOOPS_EMAIL_TRANSACTION_ID
           .BRIEF_REMINDER_TO_PARTY;
 
       return { payload, transcationId };
@@ -768,78 +730,48 @@ const CUSTOM_MEDIATORS_EMAILS = {
           mediatorEmail: data?.mediatorEmail || " ",
         };
         const transcationId =
-          LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
+          LOOPS_EMAIL_TRANSACTIONAL_IDS.LORI_DOBRIN_LOOPS_EMAIL_TRANSACTION_ID
             .ONBOARDING_REMINDER_TO_PARTY_CUSTOM_MEDIATOR;
 
         return { payload, transcationId };
       },
 
-    [`${LOOPS_EMAIL_TEMPLATE_NAME.ZOOM_MEETING_SCHEDULED_TO_PARTY}`]: (
+    // [`${LOOPS_EMAIL_TEMPLATE_NAME.ZOOM_LINK_REMINDER_TO_PARTY}`]: (
+    //   data = {}
+    // ) => {
+    //   const payload = {
+    //     name: data?.name || "",
+    //     dateAndTime: data?.dateAndTime || "",
+    //     caseTitle: data?.caseTitle || "",
+    //     caseNumber: data?.caseNumber || "N/A",
+    //     zoomURL: data?.zoomURL || "",
+    //     mediatorName: data?.mediatorName || "",
+    //     mediatorEmail: data?.mediatorEmail || "",
+    //   };
+    //   const transcationId =
+    //     LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
+    //       .ZOOM_LINK_REMINDER_TO_PARTY;
+
+    //   return { payload, transcationId };
+    // },
+
+    [`${LOOPS_EMAIL_TEMPLATE_NAME.PAYMENT_INVOICE_REMINDER_TO_PARTY}`]: (
       data = {}
     ) => {
       const payload = {
-        name: data?.name || "",
-        caseTitle: data?.caseTitle || "",
-        dateAndTime: data?.dateAndTime || "",
-        zoomURL: data?.zoomURL || "",
+        name: data?.name || " ",
+        totalDue: data?.totalDue || " ",
+        dueDate: data?.dueDate || " ",
+        caseTitle: data?.caseTitle || " ",
         caseNumber: data?.caseNumber || "N/A",
-        mediatorName: data?.mediatorName || "",
-        mediatorEmail: data?.mediatorEmail || "",
-      };
-      const transcationId =
-        LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
-          .ZOOM_MEETING_SCHEDULED_TO_PARTY;
-
-      return { payload, transcationId };
-    },
-
-    [`${LOOPS_EMAIL_TEMPLATE_NAME.ZOOM_LINK_REMINDER_TO_PARTY}`]: (
-      data = {}
-    ) => {
-      const payload = {
-        name: data?.name || "",
-        dateAndTime: data?.dateAndTime || "",
-        caseTitle: data?.caseTitle || "",
-        caseNumber: data?.caseNumber || "N/A",
-        zoomURL: data?.zoomURL || "",
-        mediatorName: data?.mediatorName || "",
-        mediatorEmail: data?.mediatorEmail || "",
-      };
-      const transcationId =
-        LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
-          .ZOOM_LINK_REMINDER_TO_PARTY;
-
-      return { payload, transcationId };
-    },
-
-    [`${LOOPS_EMAIL_TEMPLATE_NAME.DELETE_EMAIL_TO_PARTY}`]: (data = {}) => {
-      const payload = {
-        name: data?.name || "",
-        caseTitle: data?.caseTitle || "",
-        caseNumber: data?.caseNumber || "N/A",
-        dateAndTime: data?.dateAndTime || "",
-        mediatorName: data?.mediatorName || "",
-        mediatorEmail: data?.mediatorEmail || "",
-      };
-      const transcationId =
-        LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
-          .DELETE_EMAIL_TO_PARTY;
-
-      return { payload, transcationId };
-    },
-
-    [`${LOOPS_EMAIL_TEMPLATE_NAME.CANCEL_EMAIL_TO_PARTY}`]: (data = {}) => {
-      const payload = {
-        name: data?.name || "",
-        caseTitle: data?.caseTitle || "",
-        caseNumber: data?.caseNumber || "N/A",
-        dateAndTime: data?.dateAndTime || "",
+        mediationDateAndTime: data?.mediationDateAndTime || " ",
+        paymentURL: data?.paymentURL || " ",
         mediatorName: data?.mediatorName || " ",
-        mediatorEmail: data?.mediatorEmail || "",
+        mediatorEmail: data?.mediatorEmail || " ",
       };
       const transcationId =
-        LOOPS_EMAIL_TRANSACTIONAL_IDS.KATIE_BAIN_LOOPS_EMAIL_TRANSACTION_ID
-          .CANCEL_EMAIL_TO_PARTY;
+        LOOPS_EMAIL_TRANSACTIONAL_IDS.LORI_DOBRIN_LOOPS_EMAIL_TRANSACTION_ID
+          .PAYMENT_INVOICE_REMINDER_TO_PARTY;
 
       return { payload, transcationId };
     },
