@@ -42,6 +42,20 @@ const handleRefreshToken = async (mediatorId, refreshToken) => {
     // Removed sensitive credential logging
     console.log("zoomCredentials", zoomCredentials);
     console.log("Refreshing Zoom token for mediator:", mediatorId);
+
+    const clientId =
+      zoomCredentials?.client_id === null &&
+      zoomCredentials?.token !== null &&
+      refreshToken
+        ? process.env.ZOOM_CLIENT_ID
+        : zoomCredentials?.client_id;
+    const clientSecret =
+      zoomCredentials?.client_secret === null &&
+      zoomCredentials?.token !== null &&
+      refreshToken
+        ? process.env.ZOOM_SECRET_ID
+        : zoomCredentials?.client_secret;
+
     const response = await axios.post("https://zoom.us/oauth/token", null, {
       params: {
         grant_type: "refresh_token",
@@ -49,7 +63,7 @@ const handleRefreshToken = async (mediatorId, refreshToken) => {
       },
       headers: {
         Authorization: `Basic ${Buffer.from(
-          `${zoomCredentials?.client_id}:${zoomCredentials?.client_secret}`
+          `${clientId}:${clientSecret}`
         ).toString("base64")}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
