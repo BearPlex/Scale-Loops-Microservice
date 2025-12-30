@@ -107,7 +107,7 @@ const sendPaymentEmail = async (invoice, reminderObj = null) => {
       mediationDateAndTime: `${moment(caseData?.mediation_date).format(
         "MMMM DD, YYYY"
       )} at ${convertToAMPM(caseData?.case_schedule_time)}`,
-      totalDue: formatAmount(convertCentsToDollars(invoice?.amount)),
+      totalDue: formatAmount(invoice?.amount),
       dueDate:
         // remainingDueDays <= 0
         //   ? moment(invoice.created_at).startOf("day").format("MMMM DD, YYYY")
@@ -243,7 +243,7 @@ async function hourlyInvoicesReminder() {
           );
         } catch (error) {
           console.error(
-            `Error processing Payment Reminder ${reminderType} for case ${caseData.id}:`,
+            `Error processing Payment Reminder ${reminderType} for case ${caseData?.id}:`,
             error
           );
         }
