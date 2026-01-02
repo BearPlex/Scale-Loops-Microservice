@@ -25,11 +25,13 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
     console.warn("Invalid or empty response from summary");
     return;
   }
-  // console.log("data", data);
+  const nonGscMediators = data.filter(
+    (item) => !item?.mediator?.is_gsc_cases_allowed
+  );
+  // console.log("nonGscMediators", nonGscMediators);
   // return;
 
-
-  for (const item of data) {
+  for (const item of nonGscMediators) {
     const mediator = item?.mediator;
     const thisWeek = item?.thisWeek;
     const nextWeekCases = item?.nextWeekCases || [];
@@ -96,16 +98,12 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
 
           const hasDocs = (obj = {}) => {
             if (mediator?.is_odr_mediator) {
-              return (
-                normalizeBoolean(obj.key_documents)
-                // ||
-                // normalizeBoolean(obj.documents) ||
-                // normalizeBoolean(obj.has_documents)
-              );
+              return normalizeBoolean(obj.key_documents);
+              // ||
+              // normalizeBoolean(obj.documents) ||
+              // normalizeBoolean(obj.has_documents)
             }
-            return (
-              normalizeBoolean(obj.brief)
-            );
+            return normalizeBoolean(obj.brief);
           };
 
           const getDisplayName = (obj = {}) => {
@@ -127,7 +125,7 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
           };
 
           const pushParty = (obj = {}, role, pricingTypeForCase = null) => {
-            console.log("obj", obj)
+            console.log("obj", obj);
             if (!obj) return;
 
             parties.push({
@@ -140,7 +138,7 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
                 isPaid(
                   obj.payment,
                   obj.hourly_payment === null ? null : obj.hourly_payment,
-                  c.pricingType,
+                  c.pricingType
                 )
               ),
               documents: toCheckmark(hasDocs(obj)),
@@ -362,9 +360,11 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
                   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ecfdf5; border-left: 4px solid #34d399; border-top-right-radius: 5px; border-bottom-right-radius: 5px; padding: 16px;">
                     <tr>
                       <td style="padding: 16px; font-size: 14px; color: #111827;">
-                        <strong>Nice work</strong> — you completed <span style="color:#027776; font-size:16px; font-weight:bold;">${thisWeek?.totalMediations
-      }</span> ${thisWeek?.totalMediations > 1 ? "mediations" : "mediation"
-      } this week!<br />
+                        <strong>Nice work</strong> — you completed <span style="color:#027776; font-size:16px; font-weight:bold;">${
+                          thisWeek?.totalMediations
+                        }</span> ${
+      thisWeek?.totalMediations > 1 ? "mediations" : "mediation"
+    } this week!<br />
                       </td>
                     </tr>
                   </table>
@@ -416,7 +416,6 @@ async function sendWeeklyRecapEmailToMediator(userId = null) {
       );
     }
   }
-
 }
 
 async function weeklyMediationRecap() {
@@ -447,7 +446,7 @@ async function weeklyMediationRecap() {
   }
 }
 
-// weeklyMediationRecap()
+// weeklyMediationRecap();
 module.exports = {
   weeklyMediationRecap,
 };
